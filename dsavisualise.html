@@ -1,0 +1,3156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DSA Visualizer Pro — Interactive 3D Learning Platform</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg-deep: #030305;
+  --bg-panel: rgba(12, 16, 32, 0.65);
+  --glass: rgba(20, 28, 50, 0.45);
+  --glass-border: rgba(100, 160, 255, 0.12);
+  --neon-blue: #00d4ff;
+  --neon-purple: #b829dd;
+  --neon-cyan: #00f5d4;
+  --neon-pink: #ff006e;
+  --neon-orange: #ff9e00;
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255,255,255,0.65);
+  --text-muted: rgba(255,255,255,0.4);
+  --font-main: 'Inter', system-ui, sans-serif;
+  --font-display: 'Space Grotesk', sans-serif;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: var(--font-main);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Three.js Canvas Background */
+#three-bg {
+  position: fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Navigation */
+.navbar {
+  position: fixed;
+  top:0; left:0; right:0;
+  z-index: 1000;
+  background: rgba(3,3,5,0.75);
+  backdrop-filter: blur(24px) saturate(180%);
+  border-bottom: 1px solid var(--glass-border);
+  padding: 0 2.5rem;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple), var(--neon-cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.5px;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.logo i { font-size: 1.3rem; -webkit-text-fill-color: var(--neon-cyan); }
+
+.nav-links {
+  display: flex;
+  gap: 0.5rem;
+  list-style: none;
+  align-items: center;
+}
+
+.nav-links a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.88rem;
+  transition: all 0.3s ease;
+  padding: 0.5rem 1.1rem;
+  border-radius: 10px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.nav-links a:hover, .nav-links a.active {
+  color: var(--neon-blue);
+  background: rgba(0,212,255,0.08);
+}
+
+.nav-links a.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 20%;
+  width: 60%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+  border-radius: 2px;
+}
+
+/* Main Content */
+.main-content {
+  position: relative;
+  z-index: 1;
+  padding-top: 90px;
+  min-height: 100vh;
+}
+
+.section {
+  display: none;
+  padding: 2rem 2.5rem;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.section.active {
+  display: block;
+  animation: fadeInUp 0.6s cubic-bezier(0.22,1,0.36,1);
+}
+
+@keyframes fadeInUp {
+  from { opacity:0; transform: translateY(30px); }
+  to { opacity:1; transform: translateY(0); }
+}
+
+/* Glass Cards */
+.glass-card {
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
+  transition: all 0.4s cubic-bezier(0.22,1,0.36,1);
+}
+
+.glass-card:hover {
+  border-color: rgba(100,160,255,0.25);
+  box-shadow: 0 16px 60px rgba(0,0,0,0.5), 0 0 40px rgba(0,212,255,0.08);
+  transform: translateY(-4px);
+}
+
+/* Stats Dashboard */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  padding: 1.5rem 1.25rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s ease;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top:0; left:0; right:0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple), var(--neon-cyan));
+}
+
+.stat-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 30px rgba(0,212,255,0.1);
+}
+
+.stat-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.75rem;
+  display: block;
+  background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--neon-blue), var(--neon-cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0.5rem 0;
+  line-height: 1;
+}
+
+.stat-label {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 600;
+}
+
+/* Controls */
+.controls-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: var(--glass);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+}
+
+.input-glass {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 0.65rem 1rem;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  outline: none;
+  transition: all 0.3s ease;
+  font-family: var(--font-main);
+  min-width: 110px;
+}
+
+.input-glass:focus {
+  border-color: var(--neon-blue);
+  box-shadow: 0 0 20px rgba(0,212,255,0.15), inset 0 0 10px rgba(0,212,255,0.05);
+  background: rgba(255,255,255,0.06);
+}
+
+.input-glass::placeholder { color: rgba(255,255,255,0.25); }
+
+.btn {
+  padding: 0.65rem 1.25rem;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.22,1,0.36,1);
+  font-size: 0.85rem;
+  font-family: var(--font-main);
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-neon {
+  background: linear-gradient(135deg, rgba(0,212,255,0.15), rgba(184,41,221,0.15));
+  border-color: rgba(0,212,255,0.35);
+  color: var(--neon-blue);
+}
+
+.btn-neon:hover {
+  background: linear-gradient(135deg, rgba(0,212,255,0.25), rgba(184,41,221,0.25));
+  box-shadow: 0 0 30px rgba(0,212,255,0.25);
+  transform: translateY(-2px);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, rgba(255,0,110,0.15), rgba(255,0,0,0.15));
+  border-color: rgba(255,0,110,0.35);
+  color: var(--neon-pink);
+}
+
+.btn-danger:hover {
+  background: linear-gradient(135deg, rgba(255,0,110,0.25), rgba(255,0,0,0.25));
+  box-shadow: 0 0 30px rgba(255,0,110,0.25);
+  transform: translateY(-2px);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, rgba(0,245,212,0.15), rgba(0,212,255,0.15));
+  border-color: rgba(0,245,212,0.35);
+  color: var(--neon-cyan);
+}
+
+.btn-success:hover {
+  background: linear-gradient(135deg, rgba(0,245,212,0.25), rgba(0,212,255,0.25));
+  box-shadow: 0 0 30px rgba(0,245,212,0.25);
+  transform: translateY(-2px);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: var(--glass-border);
+  color: var(--text-secondary);
+}
+
+.btn-ghost:hover {
+  border-color: rgba(0,212,255,0.4);
+  color: var(--neon-blue);
+  background: rgba(0,212,255,0.05);
+}
+
+/* Viz Container */
+.viz-container {
+  background: var(--glass);
+  backdrop-filter: blur(16px) saturate(120%);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+  min-height: 520px;
+  margin-bottom: 1.5rem;
+}
+
+.viz-canvas {
+  width: 100%;
+  height: 520px;
+  display: block;
+  cursor: grab;
+}
+
+.viz-canvas:active { cursor: grabbing; }
+
+/* Traversal Result Panel */
+.traversal-result {
+  background: linear-gradient(135deg, rgba(0,212,255,0.08), rgba(184,41,221,0.08));
+  border: 1px solid rgba(0,212,255,0.2);
+  border-radius: 18px;
+  padding: 1.5rem 2rem;
+  margin-top: 1rem;
+  display: none;
+  backdrop-filter: blur(10px);
+}
+
+.traversal-result.active {
+  display: block;
+  animation: slideUp 0.5s cubic-bezier(0.22,1,0.36,1);
+}
+
+@keyframes slideUp {
+  from { opacity:0; transform: translateY(25px); }
+  to { opacity:1; transform: translateY(0); }
+}
+
+.traversal-title {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--neon-blue);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.traversal-path {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.path-node {
+  background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 1.15rem;
+  font-family: var(--font-display);
+  box-shadow: 0 4px 20px rgba(0,212,255,0.3);
+  animation: popIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  min-width: 50px;
+  text-align: center;
+}
+
+.path-arrow {
+  color: var(--neon-cyan);
+  font-size: 1.3rem;
+  font-weight: bold;
+  font-family: var(--font-display);
+}
+
+@keyframes popIn {
+  from { opacity:0; transform: scale(0.3) rotate(-10deg); }
+  to { opacity:1; transform: scale(1) rotate(0deg); }
+}
+
+/* Speed Control */
+.speed-control {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(255,255,255,0.03);
+  border-radius: 12px;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--glass-border);
+}
+
+.speed-control label {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.speed-slider {
+  -webkit-appearance: none;
+  width: 110px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.08);
+  outline: none;
+}
+
+.speed-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+  cursor: pointer;
+  box-shadow: 0 0 15px rgba(0,212,255,0.5);
+  border: 2px solid rgba(255,255,255,0.2);
+}
+
+/* Educational Controls Bar */
+.edu-controls {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  margin-left: auto;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(0,245,212,0.1);
+  color: var(--neon-cyan);
+  border: 1px solid rgba(0,245,212,0.2);
+}
+
+.status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--neon-cyan);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,100% { opacity:1; transform: scale(1); }
+  50% { opacity:0.4; transform: scale(0.7); }
+}
+
+/* Section Title */
+.section-title {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple), var(--neon-cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.section-subtitle {
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+  font-size: 1rem;
+  max-width: 600px;
+}
+
+/* Mode Toggle */
+.mode-toggle {
+  display: flex;
+  background: rgba(255,255,255,0.04);
+  border-radius: 12px;
+  padding: 4px;
+  border: 1px solid var(--glass-border);
+}
+
+.mode-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.82rem;
+  transition: all 0.3s ease;
+  font-family: var(--font-main);
+}
+
+.mode-btn.active {
+  background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+  color: white;
+  box-shadow: 0 4px 20px rgba(0,212,255,0.3);
+}
+
+/* Notification */
+.notification {
+  position: fixed;
+  top: 90px;
+  right: 25px;
+  background: var(--glass);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 1.1rem 1.5rem;
+  z-index: 3000;
+  transform: translateX(450px);
+  transition: transform 0.5s cubic-bezier(0.22,1,0.36,1);
+  max-width: 380px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+
+.notification.show { transform: translateX(0); }
+.notification.success { border-color: rgba(0,245,212,0.4); box-shadow: 0 0 30px rgba(0,245,212,0.15); }
+.notification.error { border-color: rgba(255,0,110,0.4); box-shadow: 0 0 30px rgba(255,0,110,0.15); }
+.notification.warning { border-color: rgba(255,158,0,0.4); box-shadow: 0 0 30px rgba(255,158,0,0.15); }
+
+.notification-title { font-weight: 700; margin-bottom: 0.3rem; font-size: 1rem; }
+.notification.success .notification-title { color: var(--neon-cyan); }
+.notification.error .notification-title { color: var(--neon-pink); }
+.notification.warning .notification-title { color: var(--neon-orange); }
+.notification-text { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.4; }
+
+/* Home / Hero */
+.hero {
+  text-align: center;
+  padding: 5rem 2rem 3rem;
+  position: relative;
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: 4.5rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple), var(--neon-cyan), var(--neon-blue));
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientShift 8s ease infinite;
+  line-height: 1.1;
+  letter-spacing: -2px;
+}
+
+@keyframes gradientShift {
+  0%,100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.hero-subtitle {
+  font-size: 1.3rem;
+  color: var(--text-secondary);
+  max-width: 550px;
+  margin: 0 auto 3rem;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+.hero-cta {
+  display: inline-flex;
+  gap: 1rem;
+  margin-bottom: 4rem;
+}
+
+.btn-hero {
+  padding: 1rem 2.5rem;
+  font-size: 1rem;
+  border-radius: 14px;
+}
+
+/* Team Section */
+.team-section {
+  margin-top: 3rem;
+}
+
+.team-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.team-card {
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 2rem;
+  text-align: center;
+  transition: all 0.4s cubic-bezier(0.22,1,0.36,1);
+  position: relative;
+  overflow: hidden;
+}
+
+.team-card::before {
+  content: '';
+  position: absolute;
+  top:0; left:0; right:0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple), var(--neon-cyan));
+}
+
+.team-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  border-color: rgba(0,212,255,0.3);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 50px rgba(0,212,255,0.1);
+}
+
+.team-avatar {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+  font-size: 2rem;
+  font-weight: 700;
+  color: white;
+  box-shadow: 0 8px 30px rgba(0,212,255,0.3);
+  font-family: var(--font-display);
+}
+
+.team-name {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+
+.team-id {
+  color: var(--neon-cyan);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: 1px;
+}
+
+.team-role {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+/* Feature Cards */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.feature-card {
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 2rem;
+  text-align: center;
+  transition: all 0.4s cubic-bezier(0.22,1,0.36,1);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card:hover {
+  transform: translateY(-8px);
+  border-color: rgba(0,212,255,0.3);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.4), 0 0 40px rgba(0,212,255,0.1);
+}
+
+.feature-card::after {
+  content: '';
+  position: absolute;
+  bottom:0; left:0; right:0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+  transform: scaleX(0);
+  transition: transform 0.4s ease;
+}
+
+.feature-card:hover::after { transform: scaleX(1); }
+
+.feature-icon-wrap {
+  width: 70px; height: 70px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(0,212,255,0.15), rgba(184,41,221,0.15));
+  border: 1px solid rgba(0,212,255,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+  font-size: 1.8rem;
+  transition: all 0.4s ease;
+}
+
+.feature-card:hover .feature-icon-wrap {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 0 30px rgba(0,212,255,0.2);
+}
+
+.feature-card h3 {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  margin-bottom: 0.6rem;
+}
+
+.feature-card p {
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+/* About */
+.about-content {
+  max-width: 850px;
+  margin: 0 auto;
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.about-content h2 {
+  font-family: var(--font-display);
+  font-size: 2.8rem;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.about-content p {
+  color: var(--text-secondary);
+  line-height: 1.8;
+  margin-bottom: 1.5rem;
+  font-size: 1.05rem;
+}
+
+.about-contact {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-top: 3rem;
+}
+
+.contact-card {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.contact-card:hover {
+  border-color: rgba(0,212,255,0.3);
+  transform: translateY(-4px);
+}
+
+.contact-card i {
+  font-size: 1.5rem;
+  color: var(--neon-blue);
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+.contact-card h4 {
+  font-family: var(--font-display);
+  margin-bottom: 0.5rem;
+}
+
+.contact-card p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* Stack & Queue Blocks */
+.stack-container, .queue-container {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem;
+  min-height: 400px;
+  justify-content: flex-start;
+}
+
+.stack-block, .queue-block {
+  background: linear-gradient(135deg, rgba(0,212,255,0.2), rgba(184,41,221,0.2));
+  border: 2px solid rgba(0,212,255,0.5);
+  border-radius: 14px;
+  padding: 1rem 2.5rem;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: white;
+  box-shadow: 0 4px 20px rgba(0,212,255,0.2);
+  transition: all 0.4s cubic-bezier(0.22,1,0.36,1);
+  min-width: 140px;
+  text-align: center;
+  position: relative;
+}
+
+.stack-block.top {
+  background: linear-gradient(135deg, rgba(0,245,212,0.3), rgba(0,212,255,0.3));
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 30px rgba(0,245,212,0.3);
+  animation: topPulse 2s ease-in-out infinite;
+}
+
+@keyframes topPulse {
+  0%,100% { box-shadow: 0 0 20px rgba(0,245,212,0.3); }
+  50% { box-shadow: 0 0 40px rgba(0,245,212,0.6); }
+}
+
+.queue-container {
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+.queue-block.front {
+  background: linear-gradient(135deg, rgba(0,245,212,0.3), rgba(0,212,255,0.3));
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 30px rgba(0,245,212,0.3);
+}
+
+.queue-block.rear {
+  background: linear-gradient(135deg, rgba(255,0,110,0.3), rgba(184,41,221,0.3));
+  border-color: var(--neon-pink);
+  box-shadow: 0 0 30px rgba(255,0,110,0.3);
+}
+
+.pointer-label {
+  position: absolute;
+  top: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--neon-cyan);
+  white-space: nowrap;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .navbar { padding: 0 1rem; height: 60px; }
+  .nav-links { gap: 0.3rem; }
+  .nav-links a { font-size: 0.78rem; padding: 0.4rem 0.7rem; }
+  .hero-title { font-size: 2.5rem; }
+  .hero-subtitle { font-size: 1rem; }
+  .main-content { padding-top: 75px; }
+  .controls-panel { justify-content: center; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .viz-canvas { height: 380px; }
+  .section { padding: 1.5rem 1rem; }
+  .team-grid { grid-template-columns: 1fr; }
+  .feature-grid { grid-template-columns: 1fr; }
+  .section-title { font-size: 1.6rem; }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-deep); }
+::-webkit-scrollbar-thumb { background: linear-gradient(180deg, var(--neon-blue), var(--neon-purple)); border-radius: 3px; }
+
+/* Loading */
+.loading-overlay {
+  position: fixed;
+  top:0; left:0; right:0; bottom:0;
+  background: var(--bg-deep);
+  z-index: 5000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 1.5rem;
+  transition: opacity 0.8s ease, visibility 0.8s ease;
+}
+
+.loading-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.loading-spinner {
+  width: 60px; height: 60px;
+  border-radius: 50%;
+  border: 3px solid rgba(0,212,255,0.1);
+  border-top-color: var(--neon-blue);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-text {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  letter-spacing: 2px;
+}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">INITIALIZING DSA VISUALIZER</div>
+</div>
+
+<div id="three-bg"></div>
+
+<nav class="navbar">
+  <a href="#" class="logo" data-section="home" style="text-decoration: none; cursor: pointer;">
+    <i class="fas fa-cube"></i> DSA Visualizer
+  </a>
+  <ul class="nav-links">
+    <li><a href="#" class="active" data-section="home"><i class="fas fa-home"></i> Home</a></li>
+    <li><a href="#" data-section="linkedlist"><i class="fas fa-link"></i> Linked List</a></li>
+    <li><a href="#" data-section="trees"><i class="fas fa-tree"></i> Trees</a></li>
+    <li><a href="#" data-section="graphs"><i class="fas fa-project-diagram"></i> Graphs</a></li>
+    <li><a href="#" data-section="stack"><i class="fas fa-layer-group"></i> Stack</a></li>
+    <li><a href="#" data-section="queue"><i class="fas fa-stream"></i> Queue</a></li>
+    <li><a href="#" data-section="about"><i class="fas fa-info-circle"></i> About</a></li>
+  </ul>
+</nav>
+
+<div class="notification" id="notification">
+  <div class="notification-title" id="notif-title">Success</div>
+  <div class="notification-text" id="notif-text">Operation completed</div>
+</div>
+
+<main class="main-content">
+
+<!-- HOME SECTION -->
+<section id="home" class="section active">
+  <div class="hero">
+    <h1 class="hero-title">Data Structures &
+Algorithms Visualizer</h1>
+    <p class="hero-subtitle">Learning of Insertions, Deletions, Searching, and Traversals in Real Time — Master Data Structures & Algorithms through Stunning Visualizations</p>
+    <div class="hero-cta">
+      <button class="btn btn-hero btn-neon" onclick="showSection('linkedlist')"><i class="fas fa-play"></i> Start Learning</button>
+      <button class="btn btn-hero btn-ghost" onclick="showSection('about')"><i class="fas fa-users"></i> Meet Team</button>
+    </div>
+
+    <div class="stats-grid" style="max-width: 900px; margin: 0 auto 3rem;">
+      <div class="stat-card">
+        <span class="stat-icon"><i class="fas fa-cubes"></i></span>
+        <div class="stat-label">Data Structures</div>
+        <div class="stat-value">5</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon"><i class="fas fa-bolt"></i></span>
+        <div class="stat-label">Operations</div>
+        <div class="stat-value">30+</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon"><i class="fas fa-vr-cardboard"></i></span>
+        <div class="stat-label">3D Visuals</div>
+        <div class="stat-value">Yes</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon"><i class="fas fa-star"></i></span>
+        <div class="stat-label">Experience</div>
+        <div class="stat-value">Pro</div>
+      </div>
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature-card" onclick="showSection('linkedlist')">
+        <div class="feature-icon-wrap"><i class="fas fa-link"></i></div>
+        <h3>Linked List</h3>
+        <p>Visualize insertion, deletion, and traversal with animated  nodes and glowing pointer arrows.</p>
+      </div>
+      <div class="feature-card" onclick="showSection('trees')">
+        <div class="feature-icon-wrap"><i class="fas fa-tree"></i></div>
+        <h3>Binary Search Tree</h3>
+        <p>Explore BST operations, all traversals with result panels, and interactive edge connections.</p>
+      </div>
+      <div class="feature-card" onclick="showSection('graphs')">
+        <div class="feature-icon-wrap"><i class="fas fa-project-diagram"></i></div>
+        <h3>Graph</h3>
+        <p>Build graphs with force-directed layout, run BFS/DFS, and see glowing animated edges.</p>
+      </div>
+      <div class="feature-card" onclick="showSection('stack')">
+        <div class="feature-icon-wrap"><i class="fas fa-layer-group"></i></div>
+        <h3>Stack</h3>
+        <p>Push and pop with  stacked blocks, animated top highlighting, and smooth transitions.</p>
+      </div>
+      <div class="feature-card" onclick="showSection('queue')">
+        <div class="feature-icon-wrap"><i class="fas fa-stream"></i></div>
+        <h3>Queue</h3>
+        <p>Enqueue and dequeue with horizontal visualization, front/rear pointers, and  flow.</p>
+      </div>
+      <div class="feature-card" onclick="showSection('about')">
+        <div class="feature-icon-wrap"><i class="fas fa-graduation-cap"></i></div>
+        <h3>About Project</h3>
+        <p>Learn about the team behind this premium DSA Visualizer and our educational mission.</p>
+      </div>
+    </div>
+
+    <div class="team-section">
+      <div class="team-title">Presented By</div>
+      <div class="team-grid">
+        <div class="team-card">
+          <div class="team-avatar">SS</div>
+          <div class="team-name">Saad Sarfraz</div>
+          <div class="team-id">70172727@student.uol.edu.pk</div>
+        </div>
+        <div class="team-card">
+          <div class="team-avatar">TT</div>
+          <div class="team-name">Taha Tahir</div>
+          <div class="team-id">70172986@student.uol.edu.pk</div>
+        </div>
+        <div class="team-card">
+          <div class="team-avatar">ZA</div>
+          <div class="team-name">Zainab Ali</div>
+          <div class="team-id">70154616@student.uol.edu.pk</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LINKED LIST SECTION -->
+<section id="linkedlist" class="section">
+  <h2 class="section-title"><i class="fas fa-link"></i> Linked List Visualizer</h2>
+  <p class="section-subtitle">Interactive singly linked list with 3D floating nodes, glowing arrows, and smooth educational animations</p>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <span class="stat-icon"><i class="fas fa-circle-nodes"></i></span>
+      <div class="stat-label">Total Nodes</div>
+      <div class="stat-value" id="ll-node-count">0</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon"><i class="fas fa-memory"></i></span>
+      <div class="stat-label">Active Structure</div>
+      <div class="stat-value" style="font-size:1.1rem;">Linked List</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon"><i class="fas fa-arrow-pointer"></i></span>
+      <div class="stat-label">Head Pointer</div>
+      <div class="stat-value" id="ll-head-val" style="font-size:1.1rem;">NULL</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon"><i class="fas fa-stopwatch"></i></span>
+      <div class="stat-label">Operations</div>
+      <div class="stat-value" id="ll-ops-count" style="font-size:1.1rem;">0</div>
+    </div>
+  </div>
+
+  <div class="controls-panel">
+    <input type="number" class="input-glass" id="ll-value" placeholder="Value" min="0" max="999">
+    <input type="number" class="input-glass" id="ll-position" placeholder="Position" min="1">
+    <button class="btn btn-neon" onclick="llInsertFront()"><i class="fas fa-plus"></i> Insert Front</button>
+    <button class="btn btn-neon" onclick="llInsertLast()"><i class="fas fa-plus"></i> Insert Last</button>
+    <button class="btn btn-neon" onclick="llInsertAtPos()"><i class="fas fa-plus"></i> Insert at Pos</button>
+    <button class="btn btn-danger" onclick="llDeleteFirst()"><i class="fas fa-trash"></i> Delete First</button>
+    <button class="btn btn-danger" onclick="llDeleteLast()"><i class="fas fa-trash"></i> Delete Last</button>
+    <button class="btn btn-danger" onclick="llDeleteAtPos()"><i class="fas fa-trash"></i> Delete at Pos</button>
+    <button class="btn btn-success" onclick="llSearch()"><i class="fas fa-search"></i> Search</button>
+    <button class="btn btn-ghost" onclick="llDisplay()"><i class="fas fa-list"></i> Display</button>
+    <button class="btn btn-ghost" onclick="llReset()"><i class="fas fa-rotate-right"></i> Reset</button>
+    <div class="edu-controls">
+      <div class="speed-control">
+        <label><i class="fas fa-gauge-high"></i> Speed</label>
+        <input type="range" class="speed-slider" id="ll-speed" min="1" max="10" value="5">
+      </div>
+      <div class="status-indicator" id="ll-status" style="display:none;">
+        <span class="status-dot"></span>
+        <span id="ll-status-text">Running</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="viz-container">
+    <canvas id="ll-canvas" class="viz-canvas"></canvas>
+  </div>
+
+  <div class="traversal-result" id="ll-result">
+    <div class="traversal-title"><i class="fas fa-list-ol"></i> List Contents</div>
+    <div class="traversal-path" id="ll-path"></div>
+  </div>
+</section>
+
+<!-- TREES SECTION -->
+<section id="trees" class="section">
+  <h2 class="section-title"><i class="fas fa-tree"></i> Binary Search Tree Visualizer</h2>
+  <p class="section-subtitle">3D spherical nodes with glowing edges, all traversals with result panels, and interactive node connections</p>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <span class="stat-icon"><i class="fas fa-circle-nodes"></i></span>
+      <div class="stat-label">Total Nodes</div>
+      <div class="stat-value" id="tree-node-count">0</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon"><i class="fas fa-share-nodes"></i></span>
+      <div class="stat-label">Total Edges</div>
+      <div class="stat-value" id="tree-edge-count">0</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon"><i class="fas fa-ruler-vertical"></i></span>
+      <div class="stat-label">Tree Height</div>
+      <div class="stat-value" id="tree-height">0</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon"><i class="fas fa-memory"></i></span>
+      <div class="stat-label">Active Structure</div>
+      <div class="stat-value" style="font-size:1.1rem;">BST</div>
+    </div>
+  </div>
+
+  <div class="controls-panel">
+    <input type="number" class="input-glass" id="tree-value" placeholder="Node Value" min="0" max="999">
+    <button class="btn btn-neon" onclick="treeInsert()"><i class="fas fa-plus"></i> Insert Node</button>
+    <button class="btn btn-danger" onclick="treeDelete()"><i class="fas fa-trash"></i> Delete Node</button>
+    <button class="btn btn-success" onclick="treeSearch()"><i class="fas fa-search"></i> Search Node</button>
+    <button class="btn btn-ghost" onclick="treePreorder()"><i class="fas fa-route"></i> Preorder</button>
+    <button class="btn btn-ghost" onclick="treeInorder()"><i class="fas fa-route"></i> Inorder</button>
+    <button class="btn btn-ghost" onclick="treePostorder()"><i class="fas fa-route"></i> Postorder</button>
+    <button class="btn btn-ghost" onclick="treeLevelOrder()"><i class="fas fa-layer-group"></i> Level Order</button>
+    <button class="btn btn-ghost" onclick="treeDFS()"><i class="fas fa-sitemap"></i> DFS</button>
+    <button class="btn btn-neon" onclick="treeConnectMode()"><i class="fas fa-plug"></i> Connect Nodes</button>
+    <button class="btn btn-ghost" onclick="treeReset()"><i class="fas fa-rotate-right"></i> Reset</button>
+    <div class="edu-controls">
+      <div class="speed-control">
+        <label><i class="fas fa-gauge-high"></i> Speed</label>
+        <input type="range" class="speed-slider" id="tree-speed" min="1" max="10" value="5">
+      </div>
+      <div class="status-indicator" id="tree-status" style="display:none;">
+        <span class="status-dot"></span>
+        <span id="tree-status-text">Running</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="viz-container">
+    <canvas id="tree-canvas" class="viz-canvas"></canvas>
+  </div>
+
+  <div class="traversal-result" id="tree-result">
+    <div class="traversal-title" id="tree-result-title"><i class="fas fa-list-ol"></i> Traversal Result</div>
+    <div class="traversal-path" id="tree-path"></div>
+  </div>
+</section>
+
+<!-- GRAPHS SECTION -->
+<section id="graphs" class="section">
+  <h2 class="section-title"><i class="fas fa-project-diagram"></i> Graph Visualizer</h2>
+  <p class="section-subtitle">Force-directed graph with glowing edges, BFS/DFS traversal, directed/undirected modes, and interactive editing</p>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <span class="stat-icon"><i class="fas fa-circle-nodes"></i></span>
+      <div class="stat-label">Vertices</div>
+      <div class="stat-value" id="graph-vertex-count">0</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon"><i class="fas fa-share-nodes"></i></span>
+      <div class="stat-label">Edges</div>
+      <div class="stat-value" id="graph-edge-count">0</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon"><i class="fas fa-code-branch"></i></span>
+      <div class="stat-label">Graph Type</div>
+      <div class="stat-value" id="graph-type" style="font-size:1.1rem;">Undirected</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon"><i class="fas fa-memory"></i></span>
+      <div class="stat-label">Active Structure</div>
+      <div class="stat-value" style="font-size:1.1rem;">Graph</div>
+    </div>
+  </div>
+
+  <div class="controls-panel">
+    <input type="text" class="input-glass" id="graph-vertex-label" placeholder="Vertex Label" maxlength="3">
+    <button class="btn btn-neon" onclick="graphAddVertex()"><i class="fas fa-plus"></i> Add Vertex</button>
+    <button class="btn btn-danger" onclick="graphDeleteVertex()"><i class="fas fa-trash"></i> Delete Vertex</button>
+    <input type="text" class="input-glass" id="graph-edge-from" placeholder="From" maxlength="3" style="width:75px;">
+    <input type="text" class="input-glass" id="graph-edge-to" placeholder="To" maxlength="3" style="width:75px;">
+    <button class="btn btn-neon" onclick="graphAddEdge()"><i class="fas fa-plus"></i> Add Edge</button>
+    <button class="btn btn-danger" onclick="graphDeleteEdge()"><i class="fas fa-trash"></i> Delete Edge</button>
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="undirected-btn" onclick="setGraphMode('undirected')">Undirected</button>
+      <button class="mode-btn" id="directed-btn" onclick="setGraphMode('directed')">Directed</button>
+    </div>
+    <button class="btn btn-success" onclick="graphBFS()"><i class="fas fa-route"></i> BFS</button>
+    <button class="btn btn-success" onclick="graphDFS()"><i class="fas fa-sitemap"></i> DFS</button>
+    <button class="btn btn-ghost" onclick="graphReset()"><i class="fas fa-rotate-right"></i> Reset</button>
+    <button class="btn btn-danger" id="float-toggle-btn" onclick="toggleGraphFloat()"><i class="fas fa-pause"></i> Stop Float</button>
+    <div class="edu-controls">
+      <div class="speed-control">
+        <label><i class="fas fa-gauge-high"></i> Speed</label>
+        <input type="range" class="speed-slider" id="graph-speed" min="1" max="10" value="5">
+      </div>
+      <div class="status-indicator" id="graph-status" style="display:none;">
+        <span class="status-dot"></span>
+        <span id="graph-status-text">Running</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="viz-container">
+    <canvas id="graph-canvas" class="viz-canvas"></canvas>
+  </div>
+
+  <div class="traversal-result" id="graph-result">
+    <div class="traversal-title" id="graph-result-title"><i class="fas fa-list-ol"></i> Traversal Result</div>
+    <div class="traversal-path" id="graph-path"></div>
+  </div>
+</section>
+
+<!-- STACK SECTION -->
+<section id="stack" class="section">
+  <h2 class="section-title"><i class="fas fa-layer-group"></i> Stack Visualizer</h2>
+  <p class="section-subtitle">LIFO structure with 3D stacked blocks, animated push/pop, and top element highlighting</p>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <span class="stat-icon"><i class="fas fa-cubes"></i></span>
+      <div class="stat-label">Stack Size</div>
+      <div class="stat-value" id="stack-size">0</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon"><i class="fas fa-arrow-up"></i></span>
+      <div class="stat-label">Top Element</div>
+      <div class="stat-value" id="stack-top" style="font-size:1.1rem;">Empty</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon"><i class="fas fa-memory"></i></span>
+      <div class="stat-label">Active Structure</div>
+      <div class="stat-value" style="font-size:1.1rem;">Stack</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon"><i class="fas fa-stopwatch"></i></span>
+      <div class="stat-label">Operations</div>
+      <div class="stat-value" id="stack-ops" style="font-size:1.1rem;">0</div>
+    </div>
+  </div>
+
+  <div class="controls-panel">
+    <input type="text" class="input-glass" id="stack-value" placeholder="Value" maxlength="10">
+    <button class="btn btn-neon" onclick="stackPush()"><i class="fas fa-plus"></i> Push</button>
+    <button class="btn btn-danger" onclick="stackPop()"><i class="fas fa-minus"></i> Pop</button>
+    <button class="btn btn-success" onclick="stackPeek()"><i class="fas fa-eye"></i> Peek</button>
+    <button class="btn btn-success" onclick="stackSearch()"><i class="fas fa-search"></i> Search</button>
+    <button class="btn btn-ghost" onclick="stackDisplay()"><i class="fas fa-list"></i> Display</button>
+    <button class="btn btn-ghost" onclick="stackClear()"><i class="fas fa-rotate-right"></i> Clear</button>
+    <div class="edu-controls">
+      <div class="speed-control">
+        <label><i class="fas fa-gauge-high"></i> Speed</label>
+        <input type="range" class="speed-slider" id="stack-speed" min="1" max="10" value="5">
+      </div>
+      <div class="status-indicator" id="stack-status" style="display:none;">
+        <span class="status-dot"></span>
+        <span id="stack-status-text">Running</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="viz-container" style="min-height: 450px; display: flex; justify-content: center; align-items: flex-end; padding: 2rem;">
+    <div id="stack-visual" class="stack-container" style="width: 100%; max-width: 400px;"></div>
+  </div>
+
+  <div class="traversal-result" id="stack-result">
+    <div class="traversal-title"><i class="fas fa-list-ol"></i> Stack Contents (Top to Bottom)</div>
+    <div class="traversal-path" id="stack-path"></div>
+  </div>
+</section>
+
+<!-- QUEUE SECTION -->
+<section id="queue" class="section">
+  <h2 class="section-title"><i class="fas fa-stream"></i> Queue Visualizer</h2>
+  <p class="section-subtitle">FIFO structure with horizontal flow, animated enqueue/dequeue, and front/rear pointers</p>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <span class="stat-icon"><i class="fas fa-cubes"></i></span>
+      <div class="stat-label">Queue Size</div>
+      <div class="stat-value" id="queue-size">0</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon"><i class="fas fa-arrow-right"></i></span>
+      <div class="stat-label">Front</div>
+      <div class="stat-value" id="queue-front" style="font-size:1.1rem;">Empty</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon"><i class="fas fa-arrow-left"></i></span>
+      <div class="stat-label">Rear</div>
+      <div class="stat-value" id="queue-rear" style="font-size:1.1rem;">Empty</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon"><i class="fas fa-memory"></i></span>
+      <div class="stat-label">Active Structure</div>
+      <div class="stat-value" style="font-size:1.1rem;">Queue</div>
+    </div>
+  </div>
+
+  <div class="controls-panel">
+    <input type="text" class="input-glass" id="queue-value" placeholder="Value" maxlength="10">
+    <button class="btn btn-neon" onclick="queueEnqueue()"><i class="fas fa-plus"></i> Enqueue</button>
+    <button class="btn btn-danger" onclick="queueDequeue()"><i class="fas fa-minus"></i> Dequeue</button>
+    <button class="btn btn-success" onclick="queueFront()"><i class="fas fa-eye"></i> Front</button>
+    <button class="btn btn-success" onclick="queueRear()"><i class="fas fa-eye"></i> Rear</button>
+    <button class="btn btn-success" onclick="queueSearch()"><i class="fas fa-search"></i> Search</button>
+    <button class="btn btn-ghost" onclick="queueDisplay()"><i class="fas fa-list"></i> Display</button>
+    <button class="btn btn-ghost" onclick="queueClear()"><i class="fas fa-rotate-right"></i> Clear</button>
+    <div class="edu-controls">
+      <div class="speed-control">
+        <label><i class="fas fa-gauge-high"></i> Speed</label>
+        <input type="range" class="speed-slider" id="queue-speed" min="1" max="10" value="5">
+      </div>
+      <div class="status-indicator" id="queue-status" style="display:none;">
+        <span class="status-dot"></span>
+        <span id="queue-status-text">Running</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="viz-container" style="min-height: 250px; display: flex; justify-content: center; align-items: center; padding: 2rem;">
+    <div id="queue-visual" class="queue-container" style="width: 100%;"></div>
+  </div>
+
+  <div class="traversal-result" id="queue-result">
+    <div class="traversal-title"><i class="fas fa-list-ol"></i> Queue Contents (Front to Rear)</div>
+    <div class="traversal-path" id="queue-path"></div>
+  </div>
+</section>
+
+<!-- ABOUT SECTION -->
+<section id="about" class="section">
+  <div class="about-content">
+    <h2>About DSA Visualizer</h2>
+    <p>
+      DSA Visualizer is a premium, interactive educational platform designed to help students master 
+      Data Structures and Algorithms through breathtaking 3D visualizations. our platform creates an immersive 
+      learning experience inspired by futuristic sci-fi interfaces.
+    </p>
+    <p>
+      Every operation — from pushing to a stack to traversing a binary tree — is visualized with 
+      smooth animations, glowing edges, neon gradients, and real-time feedback. The goal is to make 
+      abstract data structures tangible and intuitive.
+    </p>
+    <p>
+      This project was developed to help for interactive learning, combining advanced computer 
+      graphics with fundamental concepts. We believe beautiful design enhances learning.
+    </p>
+
+    <div class="team-section" style="margin-top: 3rem;">
+      <div class="team-title">Project Team</div>
+      <div class="team-grid">
+        <div class="team-card">
+          <div class="team-avatar">SS</div>
+          <div class="team-name">Saad Sarfraz</div>
+          <div class="team-id">70172727@student.uol.edu.pk</div>
+        </div>
+        <div class="team-card">
+          <div class="team-avatar">TT</div>
+          <div class="team-name">Taha Tahir</div>
+          <div class="team-id">70172986@student.uol.edu.pk</div>
+        </div>
+        <div class="team-card">
+          <div class="team-avatar">ZA</div>
+          <div class="team-name">Zainab Ali</div>
+          <div class="team-id">70154616@student.uol.edu.pk</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="about-contact" style="margin-top: 3rem;">
+      <div class="contact-card">
+        <i class="fas fa-envelope"></i>
+        <h4>Email</h4>
+        <p></>se.@gmail.com</p>
+      </div>
+      <div class="contact-card">
+        <i class="fas fa-globe"></i>
+        <h4>Website</h4>
+        <p>dsa-visualizer.github.io</p>
+      </div>
+      <div class="contact-card">
+        <i class="fas fa-code-branch"></i>
+        <h4>Repository</h4>
+        <p>https://github.com/saadsarfraz
+          438/dsa-visualizer</p>
+      </div>
+    </div>
+
+    <div class="stats-grid" style="margin-top: 3rem;">
+      <div class="stat-card">
+        <span class="stat-icon"><i class="fas fa-code"></i></span>
+        <div class="stat-label">Version</div>
+        <div class="stat-value" style="font-size:1.5rem;">3.0</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon"><i class="fas fa-cube"></i></span>
+        <div class="stat-label">3D Engine</div>
+        <div class="stat-value" style="font-size:1.2rem;">Attract</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon"><i class="fas fa-paint-brush"></i></span>
+        <div class="stat-label">Design</div>
+        <div class="stat-value" style="font-size:1.2rem;">Gpm</div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<script>
+
+// ==================== THREE.JS BACKGROUND ====================
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+document.getElementById('three-bg').appendChild(renderer.domElement);
+
+// Particle system
+const particleCount = 800;
+const particles = new THREE.BufferGeometry();
+const positions = new Float32Array(particleCount * 3);
+const colors = new Float32Array(particleCount * 3);
+const sizes = new Float32Array(particleCount);
+
+for (let i = 0; i < particleCount; i++) {
+  positions[i * 3] = (Math.random() - 0.5) * 50;
+  positions[i * 3 + 1] = (Math.random() - 0.5) * 50;
+  positions[i * 3 + 2] = (Math.random() - 0.5) * 50;
+
+  const colorChoice = Math.random();
+  if (colorChoice < 0.33) {
+    colors[i * 3] = 0; colors[i * 3 + 1] = 0.83; colors[i * 3 + 2] = 1;
+  } else if (colorChoice < 0.66) {
+    colors[i * 3] = 0.72; colors[i * 3 + 1] = 0.16; colors[i * 3 + 2] = 0.87;
+  } else {
+    colors[i * 3] = 0; colors[i * 3 + 1] = 0.96; colors[i * 3 + 2] = 0.83;
+  }
+  sizes[i] = Math.random() * 2 + 0.5;
+}
+
+particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+particles.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+particles.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+const particleMaterial = new THREE.PointsMaterial({
+  size: 0.15,
+  vertexColors: true,
+  transparent: true,
+  opacity: 0.8,
+  blending: THREE.AdditiveBlending,
+  sizeAttenuation: true
+});
+
+const particleSystem = new THREE.Points(particles, particleMaterial);
+scene.add(particleSystem);
+
+// Floating geometries
+const geometries = [];
+const geometryTypes = [
+  new THREE.IcosahedronGeometry(0.5, 0),
+  new THREE.OctahedronGeometry(0.4, 0),
+  new THREE.TetrahedronGeometry(0.45, 0)
+];
+
+for (let i = 0; i < 15; i++) {
+  const geo = geometryTypes[i % 3];
+  const mat = new THREE.MeshBasicMaterial({
+    color: i % 3 === 0 ? 0x00d4ff : i % 3 === 1 ? 0xb829dd : 0x00f5d4,
+    transparent: true,
+    opacity: 0.15,
+    wireframe: true
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 30, (Math.random() - 0.5) * 20);
+  mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+  mesh.userData = {
+    rotSpeed: { x: (Math.random() - 0.5) * 0.01, y: (Math.random() - 0.5) * 0.01 },
+    floatSpeed: Math.random() * 0.5 + 0.3,
+    floatOffset: Math.random() * Math.PI * 2
+  };
+  scene.add(mesh);
+  geometries.push(mesh);
+}
+
+camera.position.z = 15;
+
+// Mouse parallax
+let mouseX = 0, mouseY = 0;
+document.addEventListener('mousemove', (e) => {
+  mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+  mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+});
+
+function animateThree() {
+  requestAnimationFrame(animateThree);
+
+  const time = Date.now() * 0.001;
+  const posArray = particles.attributes.position.array;
+  for (let i = 0; i < particleCount; i++) {
+    posArray[i * 3 + 1] += Math.sin(time + i * 0.1) * 0.002;
+    posArray[i * 3] += Math.cos(time * 0.5 + i * 0.05) * 0.001;
+  }
+  particles.attributes.position.needsUpdate = true;
+  particleSystem.rotation.y += 0.0003;
+
+  geometries.forEach(mesh => {
+    mesh.rotation.x += mesh.userData.rotSpeed.x;
+    mesh.rotation.y += mesh.userData.rotSpeed.y;
+    mesh.position.y += Math.sin(time * mesh.userData.floatSpeed + mesh.userData.floatOffset) * 0.003;
+  });
+
+  camera.position.x += (mouseX * 2 - camera.position.x) * 0.02;
+  camera.position.y += (-mouseY * 2 - camera.position.y) * 0.02;
+  camera.lookAt(scene.position);
+
+  renderer.render(scene, camera);
+}
+animateThree();
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ==================== LOADING SCREEN ====================
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('loading').classList.add('hidden');
+  }, 1500);
+});
+
+// ==================== NAVIGATION ====================
+function showSection(sectionId) {
+  document.querySelectorAll('.section').forEach(s => {
+    s.classList.remove('active');
+    gsap.to(s, { opacity: 0, y: 20, duration: 0.2 });
+  });
+  document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+
+  const target = document.getElementById(sectionId);
+  target.classList.add('active');
+  gsap.fromTo(target, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' });
+
+  document.querySelector(`[data-section="${sectionId}"]`).classList.add('active');
+
+  if (sectionId === 'linkedlist') { resizeLLCanvas(); }
+  if (sectionId === 'trees') {
+    requestAnimationFrame(() => {
+      resizeTreeCanvas();
+      if (bst.root) {
+        bst.calculatePositions();
+        animateTreeNodes();
+      }
+    });
+  }
+  if (sectionId === 'graphs') { resizeGraphCanvas(); }
+  if (sectionId === 'stack') { renderStack(); }
+  if (sectionId === 'queue') { renderQueue(); }
+}
+
+document.querySelectorAll('.nav-links a').forEach(link => {
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    showSection(link.dataset.section);
+  });
+});
+
+// ==================== NOTIFICATIONS ====================
+function showNotification(title, text, type) {
+  const notif = document.getElementById('notification');
+  document.getElementById('notif-title').textContent = title;
+  document.getElementById('notif-text').textContent = text;
+  notif.className = `notification ${type || 'success'} show`;
+  gsap.fromTo(notif, { x: 100, opacity: 0 }, { x: 0, opacity: 1, duration: 0.4, ease: 'power3.out' });
+  setTimeout(() => {
+    gsap.to(notif, { x: 100, opacity: 0, duration: 0.3, onComplete: () => notif.classList.remove('show') });
+  }, 3000);
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function getSpeed(id) {
+  return 11 - parseInt(document.getElementById(id).value);
+}
+
+function setStatus(id, text, show) {
+  const el = document.getElementById(id);
+  if (show) {
+    el.style.display = 'flex';
+    document.getElementById(id.replace('status', 'status-text')).textContent = text;
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+// ==================== LINKED LIST ====================
+class ListNode {
+  constructor(value) {
+    this.value = value;
+    this.next = null;
+    this.x = 0; this.y = 0;
+    this.targetX = 0; this.targetY = 0;
+    this.scale = 0; this.targetScale = 1;
+    this.highlighted = false;
+    this.searching = false;
+    this.deleting = false;
+  }
+}
+
+class LinkedList {
+  constructor() {
+    this.head = null;
+    this.size = 0;
+    this.ops = 0;
+  }
+  insertFront(value) {
+    const node = new ListNode(value);
+    node.next = this.head;
+    this.head = node;
+    this.size++; this.ops++;
+    this.updatePositions();
+    return node;
+  }
+  insertLast(value) {
+    const node = new ListNode(value);
+    if (!this.head) { this.head = node; }
+    else {
+      let current = this.head;
+      while (current.next) current = current.next;
+      current.next = node;
+    }
+    this.size++; this.ops++;
+    this.updatePositions();
+    return node;
+  }
+  insertAtPosition(value, pos) {
+    if (pos <= 1) return this.insertFront(value);
+    if (pos > this.size) return this.insertLast(value);
+    const node = new ListNode(value);
+    let current = this.head;
+    for (let i = 1; i < pos - 1; i++) current = current.next;
+    node.next = current.next;
+    current.next = node;
+    this.size++; this.ops++;
+    this.updatePositions();
+    return node;
+  }
+  deleteFirst() {
+    if (!this.head) return null;
+    const node = this.head;
+    this.head = this.head.next;
+    this.size--; this.ops++;
+    this.updatePositions();
+    return node;
+  }
+  deleteLast() {
+    if (!this.head) return null;
+    if (!this.head.next) { this.head = null; this.size--; this.ops++; this.updatePositions(); return; }
+    let current = this.head;
+    while (current.next.next) current = current.next;
+    current.next = null;
+    this.size--; this.ops++;
+    this.updatePositions();
+  }
+  deleteAtPosition(pos) {
+    if (!this.head || pos < 1) return null;
+    if (pos === 1) return this.deleteFirst();
+    if (pos >= this.size) return this.deleteLast();
+    let current = this.head;
+    for (let i = 1; i < pos - 1; i++) current = current.next;
+    current.next = current.next.next;
+    this.size--; this.ops++;
+    this.updatePositions();
+  }
+  search(value) {
+    let current = this.head;
+    while (current) { if (current.value === value) return current; current = current.next; }
+    return null;
+  }
+  toArray() {
+    const arr = [];
+    let current = this.head;
+    while (current) { arr.push(current.value); current = current.next; }
+    return arr;
+  }
+  updatePositions() {
+    let current = this.head;
+    let index = 0;
+    const startX = 120;
+    const spacing = 190;
+    const centerY = 260;
+    while (current) {
+      current.targetX = startX + index * spacing;
+      current.targetY = centerY;
+      current.targetScale = 1;
+      index++;
+      current = current.next;
+    }
+  }
+  reset() { this.head = null; this.size = 0; this.ops = 0; }
+}
+
+const linkedList = new LinkedList();
+let llAnimating = false;
+
+const llCanvas = document.getElementById('ll-canvas');
+const llCtx = llCanvas.getContext('2d');
+
+function resizeLLCanvas() {
+  const container = llCanvas.parentElement;
+  llCanvas.width = container.clientWidth;
+  llCanvas.height = container.clientHeight || 520;
+}
+resizeLLCanvas();
+
+function drawLinkedList() {
+  llCtx.clearRect(0, 0, llCanvas.width, llCanvas.height);
+
+  let current = linkedList.head;
+  while (current && current.next) {
+    const x1 = current.x + 65;
+    const y1 = current.y;
+    const x2 = current.next.x - 65;
+    const y2 = current.next.y;
+
+    llCtx.shadowColor = 'rgba(0, 212, 255, 0.8)';
+    llCtx.shadowBlur = 15;
+    llCtx.beginPath();
+    llCtx.moveTo(x1, y1);
+    llCtx.lineTo(x2, y2);
+    llCtx.strokeStyle = 'rgba(0, 212, 255, 0.8)';
+    llCtx.lineWidth = 3;
+    llCtx.stroke();
+    llCtx.shadowBlur = 0;
+
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    const arrowLen = 15;
+    llCtx.beginPath();
+    llCtx.moveTo(x2, y2);
+    llCtx.lineTo(x2 - arrowLen * Math.cos(angle - 0.5), y2 - arrowLen * Math.sin(angle - 0.5));
+    llCtx.lineTo(x2 - arrowLen * Math.cos(angle + 0.5), y2 - arrowLen * Math.sin(angle + 0.5));
+    llCtx.closePath();
+    llCtx.fillStyle = 'rgba(0, 212, 255, 0.9)';
+    llCtx.fill();
+
+    current = current.next;
+  }
+
+  current = linkedList.head;
+  while (current) {
+    const x = current.x, y = current.y, scale = current.scale;
+    if (scale <= 0.01) { current = current.next; continue; }
+
+    if (current.highlighted) { llCtx.shadowColor = 'rgba(0, 245, 212, 1)'; llCtx.shadowBlur = 35; }
+    else if (current.searching) { llCtx.shadowColor = 'rgba(255, 200, 0, 1)'; llCtx.shadowBlur = 30; }
+    else if (current.deleting) { llCtx.shadowColor = 'rgba(255, 0, 110, 1)'; llCtx.shadowBlur = 35; }
+    else { llCtx.shadowColor = 'rgba(0, 212, 255, 0.5)'; llCtx.shadowBlur = 20; }
+
+    const width = 130 * scale, height = 85 * scale;
+    const gradient = llCtx.createLinearGradient(x - width/2, y - height/2, x + width/2, y + height/2);
+    if (current.highlighted) {
+      gradient.addColorStop(0, 'rgba(0, 245, 212, 0.35)'); gradient.addColorStop(1, 'rgba(0, 212, 255, 0.35)');
+    } else if (current.searching) {
+      gradient.addColorStop(0, 'rgba(255, 200, 0, 0.35)'); gradient.addColorStop(1, 'rgba(255, 150, 0, 0.35)');
+    } else if (current.deleting) {
+      gradient.addColorStop(0, 'rgba(255, 0, 110, 0.35)'); gradient.addColorStop(1, 'rgba(255, 0, 0, 0.35)');
+    } else {
+      gradient.addColorStop(0, 'rgba(25, 35, 65, 0.92)'); gradient.addColorStop(1, 'rgba(12, 18, 35, 0.92)');
+    }
+
+    llCtx.fillStyle = gradient;
+    llCtx.beginPath();
+    llCtx.roundRect(x - width/2, y - height/2, width, height, 16 * scale);
+    llCtx.fill();
+    llCtx.shadowBlur = 0;
+
+    llCtx.strokeStyle = current.highlighted ? 'rgba(0, 245, 212, 0.85)' :
+                         current.searching ? 'rgba(255, 200, 0, 0.85)' :
+                         current.deleting ? 'rgba(255, 0, 110, 0.85)' : 'rgba(0, 212, 255, 0.55)';
+    llCtx.lineWidth = 2.5;
+    llCtx.beginPath();
+    llCtx.roundRect(x - width/2, y - height/2, width, height, 16 * scale);
+    llCtx.stroke();
+
+    llCtx.fillStyle = '#ffffff';
+    llCtx.font = `bold ${26 * scale}px 'Space Grotesk', sans-serif`;
+    llCtx.textAlign = 'center';
+    llCtx.textBaseline = 'middle';
+    llCtx.fillText(current.value, x, y);
+
+    llCtx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+    llCtx.font = `${11 * scale}px 'Inter', sans-serif`;
+    llCtx.fillText(current.next ? 'next ->' : 'next -> NULL', x, y + height/2 + 18 * scale);
+
+    current = current.next;
+  }
+
+  if (linkedList.head) {
+    llCtx.fillStyle = 'rgba(0, 212, 255, 0.85)';
+    llCtx.font = 'bold 15px "Space Grotesk", sans-serif';
+    llCtx.textAlign = 'center';
+    llCtx.fillText('HEAD', linkedList.head.x, linkedList.head.y - 75);
+    llCtx.beginPath();
+    llCtx.moveTo(linkedList.head.x, linkedList.head.y - 60);
+    llCtx.lineTo(linkedList.head.x, linkedList.head.y - 48);
+    llCtx.strokeStyle = 'rgba(0, 212, 255, 0.85)';
+    llCtx.lineWidth = 2.5;
+    llCtx.stroke();
+    llCtx.beginPath();
+    llCtx.moveTo(linkedList.head.x - 6, linkedList.head.y - 54);
+    llCtx.lineTo(linkedList.head.x, linkedList.head.y - 48);
+    llCtx.lineTo(linkedList.head.x + 6, linkedList.head.y - 54);
+    llCtx.stroke();
+  }
+
+  requestAnimationFrame(drawLinkedList);
+}
+drawLinkedList();
+
+function animateLLNodes() {
+  let current = linkedList.head;
+  let allDone = true;
+  while (current) {
+    current.x += (current.targetX - current.x) * 0.14;
+    current.y += (current.targetY - current.y) * 0.14;
+    current.scale += (current.targetScale - current.scale) * 0.14;
+    if (Math.abs(current.targetX - current.x) > 1 || Math.abs(current.targetY - current.y) > 1 || Math.abs(current.targetScale - current.scale) > 0.01) allDone = false;
+    current = current.next;
+  }
+  if (!allDone) requestAnimationFrame(animateLLNodes);
+  else llAnimating = false;
+}
+
+function updateLLStats() {
+  document.getElementById('ll-node-count').textContent = linkedList.size;
+  document.getElementById('ll-head-val').textContent = linkedList.head ? linkedList.head.value : 'NULL';
+  document.getElementById('ll-ops-count').textContent = linkedList.ops;
+}
+
+function llInsertFront() {
+  const val = parseInt(document.getElementById('ll-value').value);
+  if (isNaN(val)) { showNotification('Error', 'Please enter a valid number', 'error'); return; }
+  linkedList.insertFront(val);
+  updateLLStats();
+  llAnimating = true;
+  animateLLNodes();
+  showNotification('Success', `Inserted ${val} at front position`);
+}
+
+function llInsertLast() {
+  const val = parseInt(document.getElementById('ll-value').value);
+  if (isNaN(val)) { showNotification('Error', 'Please enter a valid number', 'error'); return; }
+  linkedList.insertLast(val);
+  updateLLStats();
+  llAnimating = true;
+  animateLLNodes();
+  showNotification('Success', `Inserted ${val} at last position`);
+}
+
+function llInsertAtPos() {
+  const val = parseInt(document.getElementById('ll-value').value);
+  const pos = parseInt(document.getElementById('ll-position').value);
+  if (isNaN(val) || isNaN(pos) || pos < 1) { showNotification('Error', 'Please enter valid value and position', 'error'); return; }
+  linkedList.insertAtPosition(val, pos);
+  updateLLStats();
+  llAnimating = true;
+  animateLLNodes();
+  showNotification('Success', `Inserted ${val} at position ${pos}`);
+}
+
+function llDeleteFirst() {
+  if (!linkedList.head) { showNotification('Error', 'List is empty', 'error'); return; }
+  const node = linkedList.head;
+  node.deleting = true;
+  node.targetScale = 0;
+  setTimeout(() => {
+    linkedList.deleteFirst();
+    updateLLStats();
+    llAnimating = true;
+    animateLLNodes();
+  }, 500);
+  showNotification('Success', 'Deleted first position');
+}
+
+function llDeleteLast() {
+  if (!linkedList.head) { showNotification('Error', 'List is empty', 'error'); return; }
+  let current = linkedList.head;
+  while (current.next) current = current.next;
+  current.deleting = true;
+  current.targetScale = 0;
+  setTimeout(() => {
+    linkedList.deleteLast();
+    updateLLStats();
+    llAnimating = true;
+    animateLLNodes();
+  }, 500);
+  showNotification('Success', 'Deleted last position');
+}
+
+function llDeleteAtPos() {
+  const pos = parseInt(document.getElementById('ll-position').value);
+  if (isNaN(pos) || pos < 1 || pos > linkedList.size) { showNotification('Error', 'Invalid position', 'error'); return; }
+  let current = linkedList.head;
+  for (let i = 1; i < pos; i++) current = current.next;
+  current.deleting = true;
+  current.targetScale = 0;
+  setTimeout(() => {
+    linkedList.deleteAtPosition(pos);
+    updateLLStats();
+    llAnimating = true;
+    animateLLNodes();
+  }, 500);
+  showNotification('Success', `Deleted position ${pos}`);
+}
+
+async function llSearch() {
+  const val = parseInt(document.getElementById('ll-value').value);
+  if (isNaN(val)) { showNotification('Error', 'Please enter a value to search', 'error'); return; }
+  const speed = getSpeed('ll-speed');
+  setStatus('ll-status', 'Searching...', true);
+  let current = linkedList.head;
+  let found = false;
+  while (current) {
+    current.searching = true;
+    await sleep(speed * 120);
+    if (current.value === val) {
+      current.highlighted = true;
+      current.searching = false;
+      found = true;
+      showNotification('Found', `Value ${val} found in the list!`);
+      setStatus('ll-status', 'Found!', true);
+      setTimeout(() => {
+        let c = linkedList.head;
+        while (c) { c.highlighted = false; c.searching = false; c = c.next; }
+        setStatus('ll-status', '', false);
+      }, 2500);
+      return;
+    }
+    current.searching = false;
+    current = current.next;
+  }
+  if (!found) {
+    showNotification('Not Found', `Value ${val} not in the list`, 'error');
+    setStatus('ll-status', 'Not Found', true);
+    setTimeout(() => setStatus('ll-status', '', false), 2000);
+  }
+}
+
+function llDisplay() {
+  const arr = linkedList.toArray();
+  const resultDiv = document.getElementById('ll-result');
+  const pathDiv = document.getElementById('ll-path');
+  if (arr.length === 0) { showNotification('Empty', 'The list is empty', 'error'); resultDiv.classList.remove('active'); return; }
+  pathDiv.innerHTML = arr.map((val, i) => 
+    `<span class="path-node">${val}</span>${i < arr.length - 1 ? '<span class="path-arrow">-></span>' : ''}`
+  ).join('');
+  resultDiv.classList.add('active');
+  gsap.from('.path-node', { scale: 0, rotation: -10, stagger: 0.08, duration: 0.4, ease: 'back.out(1.7)' });
+}
+
+function llReset() {
+  linkedList.reset();
+  updateLLStats();
+  document.getElementById('ll-result').classList.remove('active');
+  showNotification('Reset', 'Linked list cleared');
+}
+
+// ==================== BINARY SEARCH TREE ====================
+class TreeNode {
+  constructor(value) {
+    this.value = value;
+    this.left = null;
+    this.right = null;
+    this.x = 0; this.y = 0;
+    this.targetX = 0; this.targetY = 0;
+    this.scale = 0; this.targetScale = 1;
+    this.highlighted = false;
+    this.traversing = false;
+    this.depth = 0;
+  }
+}
+
+class BinarySearchTree {
+  constructor() {
+    this.root = null;
+    this.nodeCount = 0;
+  }
+  insert(value) {
+    this.root = this._insert(this.root, value);
+    this.nodeCount++;
+    this.calculatePositions();
+    // Snap new nodes (scale=0) to their target position so they don't fly in from (0,0)
+    this.getAllNodes().forEach(n => {
+      if (n.scale <= 0.01) { n.x = n.targetX; n.y = n.targetY; }
+    });
+    return true;
+  }
+  _insert(node, value) {
+    if (!node) return new TreeNode(value);
+    if (value < node.value) node.left = this._insert(node.left, value);
+    else if (value > node.value) node.right = this._insert(node.right, value);
+    return node;
+  }
+  delete(value) {
+    const beforeCount = this.nodeCount;
+    this.root = this._delete(this.root, value);
+    if (this.nodeCount < beforeCount) { this.calculatePositions(); return true; }
+    return false;
+  }
+  _delete(node, value) {
+    if (!node) return null;
+    if (value < node.value) node.left = this._delete(node.left, value);
+    else if (value > node.value) node.right = this._delete(node.right, value);
+    else {
+      this.nodeCount--;
+      if (!node.left) return node.right;
+      if (!node.right) return node.left;
+      let minNode = node.right;
+      while (minNode.left) minNode = minNode.left;
+      node.value = minNode.value;
+      node.right = this._delete(node.right, minNode.value);
+    }
+    return node;
+  }
+  search(value) {
+    return this._search(this.root, value);
+  }
+  _search(node, value) {
+    if (!node || node.value === value) return node;
+    if (value < node.value) return this._search(node.left, value);
+    return this._search(node.right, value);
+  }
+  preorder(node, result) {
+    if (node === undefined) node = this.root;
+    if (!result) result = [];
+    if (node) { result.push(node); this.preorder(node.left, result); this.preorder(node.right, result); }
+    return result;
+  }
+  inorder(node, result) {
+    if (node === undefined) node = this.root;
+    if (!result) result = [];
+    if (node) { this.inorder(node.left, result); result.push(node); this.inorder(node.right, result); }
+    return result;
+  }
+  postorder(node, result) {
+    if (node === undefined) node = this.root;
+    if (!result) result = [];
+    if (node) { this.postorder(node.left, result); this.postorder(node.right, result); result.push(node); }
+    return result;
+  }
+  levelOrder() {
+    if (!this.root) return [];
+    const result = [], queue = [this.root];
+    while (queue.length > 0) {
+      const node = queue.shift();
+      result.push(node);
+      if (node.left) queue.push(node.left);
+      if (node.right) queue.push(node.right);
+    }
+    return result;
+  }
+  dfs() { return this.preorder(this.root); }
+  calculatePositions() {
+    if (!this.root) return;
+    const canvasWidth = treeCanvas.width;
+    const levelHeight = 95;
+    const position = (node, left, right, depth) => {
+      if (!node) return;
+      node.targetX = (left + right) / 2;
+      node.targetY = 90 + depth * levelHeight;
+      node.depth = depth;
+      const mid = (left + right) / 2;
+      position(node.left, left, mid, depth + 1);
+      position(node.right, mid, right, depth + 1);
+    };
+    position(this.root, 90, canvasWidth - 90, 0);
+  }
+  getHeight(node) {
+    if (node === undefined) node = this.root;
+    if (!node) return 0;
+    return 1 + Math.max(this.getHeight(node.left), this.getHeight(node.right));
+  }
+  getEdges() {
+    const edges = [];
+    const traverse = (node) => {
+      if (!node) return;
+      if (node.left) edges.push({from: node, to: node.left});
+      if (node.right) edges.push({from: node, to: node.right});
+      traverse(node.left); traverse(node.right);
+    };
+    traverse(this.root);
+    return edges;
+  }
+  reset() { this.root = null; this.nodeCount = 0; }
+  getAllNodes() {
+    const nodes = [];
+    const traverse = (node) => { if (!node) return; nodes.push(node); traverse(node.left); traverse(node.right); };
+    traverse(this.root);
+    return nodes;
+  }
+}
+
+const bst = new BinarySearchTree();
+let treeConnectModeActive = false;
+let treeSelectedNode = null;
+let treeExtraEdges = [];
+
+const treeCanvas = document.getElementById('tree-canvas');
+const treeCtx = treeCanvas.getContext('2d');
+window.bst = bst;
+window.__treeDebug = { treeCanvas, treeCtx };
+
+function resizeTreeCanvas() {
+  const container = treeCanvas.parentElement;
+  const width = Math.max(container?.clientWidth || 0, 300);
+  const height = Math.max(container?.clientHeight || 0, 420);
+
+  if (treeCanvas.width !== width || treeCanvas.height !== height) {
+    treeCanvas.width = width;
+    treeCanvas.height = height;
+  }
+
+  bst.calculatePositions();
+  if (bst.root) {
+    bst.getAllNodes().forEach(node => {
+      node.x = node.targetX;
+      node.y = node.targetY;
+      node.scale = 1;
+    });
+  }
+}
+resizeTreeCanvas();
+
+function drawTree() {
+  treeCtx.clearRect(0, 0, treeCanvas.width, treeCanvas.height);
+  treeCtx.fillStyle = 'rgba(3, 7, 18, 0.18)';
+  treeCtx.fillRect(0, 0, treeCanvas.width, treeCanvas.height);
+
+  if (!bst.root) {
+    requestAnimationFrame(drawTree);
+    return;
+  }
+
+  const edges = bst.getEdges();
+  edges.forEach(edge => {
+    const x1 = edge.from.x, y1 = edge.from.y + 28;
+    const x2 = edge.to.x, y2 = edge.to.y - 28;
+    treeCtx.shadowColor = 'rgba(0, 212, 255, 0.8)';
+    treeCtx.shadowBlur = 14;
+    treeCtx.beginPath();
+    treeCtx.moveTo(x1, y1);
+    treeCtx.lineTo(x2, y2);
+    treeCtx.strokeStyle = 'rgba(0, 212, 255, 0.9)';
+    treeCtx.lineWidth = 3;
+    treeCtx.stroke();
+    treeCtx.shadowBlur = 0;
+  });
+
+  treeExtraEdges.forEach(edge => {
+    const x1 = edge.from.x, y1 = edge.from.y;
+    const x2 = edge.to.x, y2 = edge.to.y;
+    treeCtx.shadowColor = 'rgba(184, 41, 221, 0.85)';
+    treeCtx.shadowBlur = 18;
+    treeCtx.beginPath();
+    treeCtx.moveTo(x1, y1);
+    treeCtx.quadraticCurveTo((x1 + x2) / 2 + 60, (y1 + y2) / 2, x2, y2);
+    treeCtx.strokeStyle = 'rgba(184, 41, 221, 0.9)';
+    treeCtx.lineWidth = 3;
+    treeCtx.setLineDash([6, 4]);
+    treeCtx.stroke();
+    treeCtx.setLineDash([]);
+    treeCtx.shadowBlur = 0;
+  });
+
+  const allNodes = bst.getAllNodes();
+  allNodes.forEach(node => {
+    const x = node.x, y = node.y;
+    const scale = Math.max(node.scale, 0.75);
+    const radius = 32 * scale;
+
+    if (node.highlighted) { treeCtx.shadowColor = 'rgba(0, 245, 212, 1)'; treeCtx.shadowBlur = 45; }
+    else if (node.traversing) { treeCtx.shadowColor = 'rgba(255, 200, 0, 1)'; treeCtx.shadowBlur = 40; }
+    else if (node === treeSelectedNode) { treeCtx.shadowColor = 'rgba(184, 41, 221, 1)'; treeCtx.shadowBlur = 45; }
+    else { treeCtx.shadowColor = 'rgba(0, 212, 255, 0.7)'; treeCtx.shadowBlur = 24; }
+
+    const gradient = treeCtx.createRadialGradient(x - radius/3, y - radius/3, radius/4, x, y, radius);
+    if (node.highlighted) {
+      gradient.addColorStop(0, 'rgba(0, 245, 212, 0.95)'); gradient.addColorStop(1, 'rgba(0, 212, 255, 0.72)');
+    } else if (node.traversing) {
+      gradient.addColorStop(0, 'rgba(255, 200, 0, 0.95)'); gradient.addColorStop(1, 'rgba(255, 150, 0, 0.72)');
+    } else if (node === treeSelectedNode) {
+      gradient.addColorStop(0, 'rgba(184, 41, 221, 0.95)'); gradient.addColorStop(1, 'rgba(100, 50, 200, 0.72)');
+    } else {
+      gradient.addColorStop(0, 'rgba(0, 212, 255, 0.88)'); gradient.addColorStop(1, 'rgba(17, 25, 55, 0.92)');
+    }
+
+    treeCtx.fillStyle = gradient;
+    treeCtx.beginPath();
+    treeCtx.arc(x, y, radius, 0, Math.PI * 2);
+    treeCtx.fill();
+    treeCtx.shadowBlur = 0;
+
+    treeCtx.strokeStyle = node.highlighted ? 'rgba(0, 245, 212, 0.95)' :
+                          node.traversing ? 'rgba(255, 200, 0, 0.95)' :
+                          node === treeSelectedNode ? 'rgba(184, 41, 221, 0.95)' : 'rgba(0, 212, 255, 0.9)';
+    treeCtx.lineWidth = 2.5;
+    treeCtx.beginPath();
+    treeCtx.arc(x, y, radius, 0, Math.PI * 2);
+    treeCtx.stroke();
+
+    treeCtx.fillStyle = '#ffffff';
+    treeCtx.font = `bold ${19 * scale}px 'Space Grotesk', sans-serif`;
+    treeCtx.textAlign = 'center';
+    treeCtx.textBaseline = 'middle';
+    treeCtx.fillText(node.value, x, y);
+  });
+
+  requestAnimationFrame(drawTree);
+}
+drawTree();
+
+function animateTreeNodes() {
+  const allNodes = bst.getAllNodes();
+  let allDone = true;
+  allNodes.forEach(node => {
+    node.x += (node.targetX - node.x) * 0.12;
+    node.y += (node.targetY - node.y) * 0.12;
+    node.scale += (node.targetScale - node.scale) * 0.12;
+    if (Math.abs(node.targetX - node.x) > 1 || Math.abs(node.targetY - node.y) > 1 || Math.abs(node.targetScale - node.scale) > 0.01) allDone = false;
+  });
+  if (!allDone) requestAnimationFrame(animateTreeNodes);
+}
+
+function updateTreeStats() {
+  document.getElementById('tree-node-count').textContent = bst.nodeCount;
+  document.getElementById('tree-edge-count').textContent = bst.getEdges().length + treeExtraEdges.length;
+  document.getElementById('tree-height').textContent = bst.getHeight();
+}
+
+function treeInsert() {
+  const val = parseInt(document.getElementById('tree-value').value);
+  if (isNaN(val)) { showNotification('Error', 'Please enter a valid number', 'error'); return; }
+  bst.insert(val);
+  updateTreeStats();
+  animateTreeNodes();
+  showNotification('Success', `Inserted ${val} into BST`);
+}
+
+function treeDelete() {
+  const val = parseInt(document.getElementById('tree-value').value);
+  if (isNaN(val)) { showNotification('Error', 'Please enter a valid number', 'error'); return; }
+  if (bst.delete(val)) {
+    updateTreeStats();
+    animateTreeNodes();
+    showNotification('Success', `Deleted ${val} from BST`);
+  } else {
+    showNotification('Error', `Value ${val} not found`, 'error');
+  }
+}
+
+async function treeSearch() {
+  const val = parseInt(document.getElementById('tree-value').value);
+  if (isNaN(val)) { showNotification('Error', 'Please enter a value to search', 'error'); return; }
+  const speed = getSpeed('tree-speed');
+  setStatus('tree-status', 'Searching...', true);
+  let node = bst.root;
+  let found = false;
+  while (node) {
+    node.traversing = true;
+    await sleep(speed * 120);
+    if (node.value === val) {
+      node.highlighted = true;
+      node.traversing = false;
+      found = true;
+      showNotification('Found', `Value ${val} found in BST!`);
+      setStatus('tree-status', 'Found!', true);
+      setTimeout(() => {
+        bst.getAllNodes().forEach(n => { n.highlighted = false; n.traversing = false; });
+        setStatus('tree-status', '', false);
+      }, 2500);
+      return;
+    }
+    node.traversing = false;
+    if (val < node.value) node = node.left;
+    else node = node.right;
+  }
+  if (!found) {
+    showNotification('Not Found', `Value ${val} not in BST`, 'error');
+    setStatus('tree-status', 'Not Found', true);
+    setTimeout(() => setStatus('tree-status', '', false), 2000);
+  }
+}
+
+async function animateTraversal(nodes, title) {
+  const speed = getSpeed('tree-speed');
+  const resultDiv = document.getElementById('tree-result');
+  const pathDiv = document.getElementById('tree-path');
+  const titleDiv = document.getElementById('tree-result-title');
+
+  titleDiv.innerHTML = `<i class="fas fa-list-ol"></i> ${title}`;
+  pathDiv.innerHTML = '';
+  resultDiv.classList.add('active');
+  setStatus('tree-status', 'Traversing...', true);
+
+  const values = [];
+  for (let i = 0; i < nodes.length; i++) {
+    nodes[i].traversing = true;
+    await sleep(speed * 180);
+    nodes[i].traversing = false;
+    nodes[i].highlighted = true;
+    values.push(nodes[i].value);
+
+    pathDiv.innerHTML = values.map((val, idx) => 
+      `<span class="path-node">${val}</span>${idx < values.length - 1 ? '<span class="path-arrow">-></span>' : ''}`
+    ).join('');
+    await sleep(speed * 60);
+  }
+
+  await sleep(1200);
+  nodes.forEach(n => { n.highlighted = false; n.traversing = false; });
+  setStatus('tree-status', 'Complete', true);
+  setTimeout(() => setStatus('tree-status', '', false), 1500);
+}
+
+function treePreorder() {
+  if (!bst.root) { showNotification('Error', 'Tree is empty', 'error'); return; }
+  animateTraversal(bst.preorder(bst.root), 'Preorder Traversal');
+}
+function treeInorder() {
+  if (!bst.root) { showNotification('Error', 'Tree is empty', 'error'); return; }
+  animateTraversal(bst.inorder(bst.root), 'Inorder Traversal');
+}
+function treePostorder() {
+  if (!bst.root) { showNotification('Error', 'Tree is empty', 'error'); return; }
+  animateTraversal(bst.postorder(bst.root), 'Postorder Traversal');
+}
+function treeLevelOrder() {
+  if (!bst.root) { showNotification('Error', 'Tree is empty', 'error'); return; }
+  animateTraversal(bst.levelOrder(), 'Level Order Traversal');
+}
+function treeDFS() {
+  if (!bst.root) { showNotification('Error', 'Tree is empty', 'error'); return; }
+  animateTraversal(bst.preorder(bst.root), 'DFS Traversal');
+}
+
+function treeConnectMode() {
+  treeConnectModeActive = !treeConnectModeActive;
+  if (treeConnectModeActive) {
+    showNotification('Connect Mode', 'Click two nodes to create an edge');
+    treeCanvas.style.cursor = 'crosshair';
+  } else {
+    treeSelectedNode = null;
+    treeCanvas.style.cursor = 'grab';
+    showNotification('Normal Mode', 'Connect mode disabled');
+  }
+}
+
+treeCanvas.addEventListener('click', (e) => {
+  if (!treeConnectModeActive) return;
+  const rect = treeCanvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  const allNodes = bst.getAllNodes();
+  let clickedNode = null;
+  for (const node of allNodes) {
+    const dx = x - node.x, dy = y - node.y;
+    if (Math.sqrt(dx*dx + dy*dy) < 38) { clickedNode = node; break; }
+  }
+
+  if (clickedNode) {
+    if (!treeSelectedNode) {
+      treeSelectedNode = clickedNode;
+      showNotification('Selected', `Node ${clickedNode.value} selected. Click another node.`);
+    } else if (treeSelectedNode !== clickedNode) {
+      treeExtraEdges.push({from: treeSelectedNode, to: clickedNode});
+      treeSelectedNode = null;
+      updateTreeStats();
+      showNotification('Connected', 'Nodes connected successfully');
+    } else {
+      treeSelectedNode = null;
+    }
+  }
+});
+
+function treeReset() {
+  bst.reset();
+  treeExtraEdges = [];
+  treeSelectedNode = null;
+  treeConnectModeActive = false;
+  treeCanvas.style.cursor = 'grab';
+  updateTreeStats();
+  document.getElementById('tree-result').classList.remove('active');
+  showNotification('Reset', 'Tree cleared');
+}
+
+// ==================== GRAPH ====================
+class GraphVertex {
+  constructor(label, x, y) {
+    this.label = label;
+    this.x = x || Math.random() * 500 + 100;
+    this.y = y || Math.random() * 300 + 100;
+    this.vx = 0; this.vy = 0;
+    this.radius = 32;
+    this.highlighted = false;
+    this.traversing = false;
+    this.dragging = false;
+  }
+}
+
+class GraphEdge {
+  constructor(from, to, directed) {
+    this.from = from; this.to = to;
+    this.directed = directed;
+    this.highlighted = false;
+  }
+}
+
+class Graph {
+  constructor() {
+    this.vertices = [];
+    this.edges = [];
+    this.directed = false;
+  }
+  addVertex(label, x, y) {
+    if (this.vertices.find(v => v.label === label)) return null;
+    const vertex = new GraphVertex(label, x, y);
+    this.vertices.push(vertex);
+    return vertex;
+  }
+  deleteVertex(label) {
+    const idx = this.vertices.findIndex(v => v.label === label);
+    if (idx === -1) return false;
+    this.vertices.splice(idx, 1);
+    this.edges = this.edges.filter(e => e.from.label !== label && e.to.label !== label);
+    return true;
+  }
+  addEdge(fromLabel, toLabel) {
+    const from = this.vertices.find(v => v.label === fromLabel);
+    const to = this.vertices.find(v => v.label === toLabel);
+    if (!from || !to) return false;
+    if (this.edges.find(e => e.from === from && e.to === to)) return false;
+    this.edges.push(new GraphEdge(from, to, this.directed));
+    return true;
+  }
+  deleteEdge(fromLabel, toLabel) {
+    const idx = this.edges.findIndex(e => e.from.label === fromLabel && e.to.label === toLabel);
+    if (idx === -1) return false;
+    this.edges.splice(idx, 1);
+    return true;
+  }
+  bfs(startLabel) {
+    const start = this.vertices.find(v => v.label === startLabel);
+    if (!start) return [];
+    const visited = new Set(), result = [], queue = [start];
+    visited.add(start);
+    while (queue.length > 0) {
+      const vertex = queue.shift();
+      result.push(vertex);
+      this.edges.forEach(edge => {
+        if (edge.from === vertex && !visited.has(edge.to)) { visited.add(edge.to); queue.push(edge.to); }
+        if (!this.directed && edge.to === vertex && !visited.has(edge.from)) { visited.add(edge.from); queue.push(edge.from); }
+      });
+    }
+    return result;
+  }
+  dfs(startLabel) {
+    const start = this.vertices.find(v => v.label === startLabel);
+    if (!start) return [];
+    const visited = new Set(), result = [];
+    const dfsVisit = (vertex) => {
+      visited.add(vertex); result.push(vertex);
+      this.edges.forEach(edge => {
+        if (edge.from === vertex && !visited.has(edge.to)) dfsVisit(edge.to);
+        if (!this.directed && edge.to === vertex && !visited.has(edge.from)) dfsVisit(edge.from);
+      });
+    };
+    dfsVisit(start);
+    return result;
+  }
+  reset() { this.vertices = []; this.edges = []; }
+  getVertexCount() { return this.vertices.length; }
+  getEdgeCount() { return this.edges.length; }
+}
+
+const graph = new Graph();
+let draggedVertex = null;
+let graphAnimating = false;
+let graphFloating = true; // controls force-directed layout on/off
+
+const graphCanvas = document.getElementById('graph-canvas');
+const graphCtx = graphCanvas.getContext('2d');
+
+function resizeGraphCanvas() {
+  const container = graphCanvas.parentElement;
+  graphCanvas.width = container.clientWidth;
+  graphCanvas.height = container.clientHeight || 520;
+}
+resizeGraphCanvas();
+
+function applyForceDirected() {
+  const k = 8000, repulsion = 25000, damping = 0.82;
+  const centerX = graphCanvas.width / 2, centerY = graphCanvas.height / 2;
+
+  graph.vertices.forEach(v => {
+    if (v.dragging) return;
+    let fx = 0, fy = 0;
+    graph.vertices.forEach(other => {
+      if (v === other) return;
+      const dx = v.x - other.x, dy = v.y - other.y;
+      const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+      const force = repulsion / (dist * dist);
+      fx += (dx / dist) * force; fy += (dy / dist) * force;
+    });
+    graph.edges.forEach(edge => {
+      if (edge.from === v || edge.to === v) {
+        const other = edge.from === v ? edge.to : edge.from;
+        const dx = other.x - v.x, dy = other.y - v.y;
+        const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+        const force = dist * dist / k;
+        fx += (dx / dist) * force * 0.05; fy += (dy / dist) * force * 0.05;
+      }
+    });
+    fx += (centerX - v.x) * 0.001; fy += (centerY - v.y) * 0.001;
+    v.vx = (v.vx + fx) * damping; v.vy = (v.vy + fy) * damping;
+    v.x += v.vx; v.y += v.vy;
+    v.x = Math.max(50, Math.min(graphCanvas.width - 50, v.x));
+    v.y = Math.max(50, Math.min(graphCanvas.height - 50, v.y));
+  });
+}
+
+function drawGraph() {
+  graphCtx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
+  if (graphFloating && !graphAnimating) applyForceDirected();
+
+  graph.edges.forEach(edge => {
+    const x1 = edge.from.x, y1 = edge.from.y;
+    const x2 = edge.to.x, y2 = edge.to.y;
+    const dx = x2 - x1, dy = y2 - y1;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const nx = dx / dist, ny = dy / dist;
+    const startX = x1 + nx * 34, startY = y1 + ny * 34;
+    const endX = x2 - nx * 34, endY = y2 - ny * 34;
+
+    if (edge.highlighted) {
+      graphCtx.shadowColor = 'rgba(0, 245, 212, 1)';
+      graphCtx.shadowBlur = 22;
+      graphCtx.strokeStyle = 'rgba(0, 245, 212, 0.9)';
+      graphCtx.lineWidth = 4;
+    } else {
+      graphCtx.shadowColor = 'rgba(0, 212, 255, 0.5)';
+      graphCtx.shadowBlur = 12;
+      graphCtx.strokeStyle = 'rgba(0, 212, 255, 0.65)';
+      graphCtx.lineWidth = 2.5;
+    }
+
+    graphCtx.beginPath();
+    graphCtx.moveTo(startX, startY);
+    graphCtx.lineTo(endX, endY);
+    graphCtx.stroke();
+    graphCtx.shadowBlur = 0;
+
+    if (edge.directed) {
+      const angle = Math.atan2(endY - startY, endX - startX);
+      const arrowLen = 14;
+      graphCtx.beginPath();
+      graphCtx.moveTo(endX, endY);
+      graphCtx.lineTo(endX - arrowLen * Math.cos(angle - 0.5), endY - arrowLen * Math.sin(angle - 0.5));
+      graphCtx.lineTo(endX - arrowLen * Math.cos(angle + 0.5), endY - arrowLen * Math.sin(angle + 0.5));
+      graphCtx.closePath();
+      graphCtx.fillStyle = edge.highlighted ? 'rgba(0, 245, 212, 0.9)' : 'rgba(0, 212, 255, 0.8)';
+      graphCtx.fill();
+    }
+
+    const midX = (startX + endX) / 2, midY = (startY + endY) / 2;
+    graphCtx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+    graphCtx.font = '10px "Inter", sans-serif';
+    graphCtx.textAlign = 'center';
+    graphCtx.fillText(`${edge.from.label}-${edge.to.label}`, midX, midY - 6);
+  });
+
+  graph.vertices.forEach(v => {
+    const x = v.x, y = v.y;
+    if (v.highlighted) { graphCtx.shadowColor = 'rgba(0, 245, 212, 1)'; graphCtx.shadowBlur = 40; }
+    else if (v.traversing) { graphCtx.shadowColor = 'rgba(255, 200, 0, 1)'; graphCtx.shadowBlur = 35; }
+    else { graphCtx.shadowColor = 'rgba(0, 212, 255, 0.6)'; graphCtx.shadowBlur = 22; }
+
+    const gradient = graphCtx.createRadialGradient(x - 8, y - 8, 5, x, y, 34);
+    if (v.highlighted) {
+      gradient.addColorStop(0, 'rgba(0, 245, 212, 0.9)'); gradient.addColorStop(1, 'rgba(0, 212, 255, 0.7)');
+    } else if (v.traversing) {
+      gradient.addColorStop(0, 'rgba(255, 200, 0, 0.9)'); gradient.addColorStop(1, 'rgba(255, 150, 0, 0.7)');
+    } else {
+      gradient.addColorStop(0, 'rgba(35, 55, 110, 0.92)'); gradient.addColorStop(1, 'rgba(18, 28, 55, 0.92)');
+    }
+
+    graphCtx.fillStyle = gradient;
+    graphCtx.beginPath();
+    graphCtx.arc(x, y, 34, 0, Math.PI * 2);
+    graphCtx.fill();
+    graphCtx.shadowBlur = 0;
+
+    graphCtx.strokeStyle = v.highlighted ? 'rgba(0, 245, 212, 0.9)' :
+                          v.traversing ? 'rgba(255, 200, 0, 0.9)' : 'rgba(0, 212, 255, 0.65)';
+    graphCtx.lineWidth = 2.5;
+    graphCtx.beginPath();
+    graphCtx.arc(x, y, 34, 0, Math.PI * 2);
+    graphCtx.stroke();
+
+    graphCtx.fillStyle = '#ffffff';
+    graphCtx.font = 'bold 17px "Space Grotesk", sans-serif';
+    graphCtx.textAlign = 'center';
+    graphCtx.textBaseline = 'middle';
+    graphCtx.fillText(v.label, x, y);
+  });
+
+  requestAnimationFrame(drawGraph);
+}
+drawGraph();
+
+function updateGraphStats() {
+  document.getElementById('graph-vertex-count').textContent = graph.getVertexCount();
+  document.getElementById('graph-edge-count').textContent = graph.getEdgeCount();
+  document.getElementById('graph-type').textContent = graph.directed ? 'Directed' : 'Undirected';
+}
+
+function graphAddVertex() {
+  const label = document.getElementById('graph-vertex-label').value.trim().toUpperCase();
+  if (!label) { showNotification('Error', 'Please enter a vertex label', 'error'); return; }
+  if (graph.addVertex(label)) {
+    updateGraphStats();
+    showNotification('Success', `Vertex ${label} added`);
+  } else {
+    showNotification('Error', `Vertex ${label} already exists`, 'error');
+  }
+}
+
+function graphDeleteVertex() {
+  const label = document.getElementById('graph-vertex-label').value.trim().toUpperCase();
+  if (!label) { showNotification('Error', 'Please enter a vertex label', 'error'); return; }
+  if (graph.deleteVertex(label)) {
+    updateGraphStats();
+    showNotification('Success', `Vertex ${label} deleted`);
+  } else {
+    showNotification('Error', `Vertex ${label} not found`, 'error');
+  }
+}
+
+function graphAddEdge() {
+  const from = document.getElementById('graph-edge-from').value.trim().toUpperCase();
+  const to = document.getElementById('graph-edge-to').value.trim().toUpperCase();
+  if (!from || !to) { showNotification('Error', 'Please enter both vertices', 'error'); return; }
+  if (graph.addEdge(from, to)) {
+    updateGraphStats();
+    showNotification('Success', `Edge ${from}-${to} added`);
+  } else {
+    showNotification('Error', 'Edge already exists or invalid vertices', 'error');
+  }
+}
+
+function graphDeleteEdge() {
+  const from = document.getElementById('graph-edge-from').value.trim().toUpperCase();
+  const to = document.getElementById('graph-edge-to').value.trim().toUpperCase();
+  if (!from || !to) { showNotification('Error', 'Please enter both vertices', 'error'); return; }
+  if (graph.deleteEdge(from, to)) {
+    updateGraphStats();
+    showNotification('Success', `Edge ${from}-${to} deleted`);
+  } else {
+    showNotification('Error', 'Edge not found', 'error');
+  }
+}
+
+function setGraphMode(mode) {
+  graph.directed = mode === 'directed';
+  document.getElementById('undirected-btn').classList.toggle('active', mode === 'undirected');
+  document.getElementById('directed-btn').classList.toggle('active', mode === 'directed');
+  updateGraphStats();
+  showNotification('Mode Changed', `Graph is now ${mode}`);
+}
+
+async function graphBFS() {
+  if (graph.vertices.length === 0) { showNotification('Error', 'Graph is empty', 'error'); return; }
+  const startLabel = graph.vertices[0].label;
+  const speed = getSpeed('graph-speed');
+  setStatus('graph-status', 'BFS Running...', true);
+  graphAnimating = true;
+  const vertices = graph.bfs(startLabel);
+
+  const resultDiv = document.getElementById('graph-result');
+  const pathDiv = document.getElementById('graph-path');
+  const titleDiv = document.getElementById('graph-result-title');
+
+  titleDiv.innerHTML = '<i class="fas fa-list-ol"></i> BFS Order';
+  pathDiv.innerHTML = '';
+  resultDiv.classList.add('active');
+
+  const values = [];
+  for (let i = 0; i < vertices.length; i++) {
+    vertices[i].traversing = true;
+    graph.edges.forEach(e => {
+      if (e.from === vertices[i] || (!graph.directed && e.to === vertices[i])) e.highlighted = true;
+    });
+    await sleep(speed * 220);
+    vertices[i].traversing = false;
+    vertices[i].highlighted = true;
+    values.push(vertices[i].label);
+
+    pathDiv.innerHTML = values.map((val, idx) => 
+      `<span class="path-node">${val}</span>${idx < values.length - 1 ? '<span class="path-arrow">-></span>' : ''}`
+    ).join('');
+    await sleep(speed * 100);
+  }
+
+  await sleep(1800);
+  vertices.forEach(v => { v.highlighted = false; v.traversing = false; });
+  graph.edges.forEach(e => e.highlighted = false);
+  graphAnimating = false;
+  setStatus('graph-status', 'Complete', true);
+  setTimeout(() => setStatus('graph-status', '', false), 1500);
+}
+
+async function graphDFS() {
+  if (graph.vertices.length === 0) { showNotification('Error', 'Graph is empty', 'error'); return; }
+  const startLabel = graph.vertices[0].label;
+  const speed = getSpeed('graph-speed');
+  setStatus('graph-status', 'DFS Running...', true);
+  graphAnimating = true;
+  const vertices = graph.dfs(startLabel);
+
+  const resultDiv = document.getElementById('graph-result');
+  const pathDiv = document.getElementById('graph-path');
+  const titleDiv = document.getElementById('graph-result-title');
+
+  titleDiv.innerHTML = '<i class="fas fa-list-ol"></i> DFS Order';
+  pathDiv.innerHTML = '';
+  resultDiv.classList.add('active');
+
+  const values = [];
+  for (let i = 0; i < vertices.length; i++) {
+    vertices[i].traversing = true;
+    graph.edges.forEach(e => {
+      if (e.from === vertices[i] || (!graph.directed && e.to === vertices[i])) e.highlighted = true;
+    });
+    await sleep(speed * 220);
+    vertices[i].traversing = false;
+    vertices[i].highlighted = true;
+    values.push(vertices[i].label);
+
+    pathDiv.innerHTML = values.map((val, idx) => 
+      `<span class="path-node">${val}</span>${idx < values.length - 1 ? '<span class="path-arrow">-></span>' : ''}`
+    ).join('');
+    await sleep(speed * 100);
+  }
+
+  await sleep(1800);
+  vertices.forEach(v => { v.highlighted = false; v.traversing = false; });
+  graph.edges.forEach(e => e.highlighted = false);
+  graphAnimating = false;
+  setStatus('graph-status', 'Complete', true);
+  setTimeout(() => setStatus('graph-status', '', false), 1500);
+}
+
+function graphReset() {
+  graph.reset();
+  graphAnimating = false;
+  updateGraphStats();
+  document.getElementById('graph-result').classList.remove('active');
+  showNotification('Reset', 'Graph cleared');
+}
+
+function toggleGraphFloat() {
+  graphFloating = !graphFloating;
+  const btn = document.getElementById('float-toggle-btn');
+  if (graphFloating) {
+    btn.innerHTML = '<i class="fas fa-pause"></i> Stop Float';
+    btn.className = 'btn btn-danger';
+    showNotification('Float', 'Graph floating enabled');
+  } else {
+    btn.innerHTML = '<i class="fas fa-play"></i> Start Float';
+    btn.className = 'btn btn-success';
+    showNotification('Float', 'Graph floating stopped');
+  }
+}
+
+graphCanvas.addEventListener('mousedown', (e) => {
+  const rect = graphCanvas.getBoundingClientRect();
+  const x = e.clientX - rect.left, y = e.clientY - rect.top;
+  for (const v of graph.vertices) {
+    const dx = x - v.x, dy = y - v.y;
+    if (Math.sqrt(dx*dx + dy*dy) < 38) { draggedVertex = v; v.dragging = true; graphCanvas.style.cursor = 'grabbing'; break; }
+  }
+});
+
+graphCanvas.addEventListener('mousemove', (e) => {
+  if (draggedVertex) {
+    const rect = graphCanvas.getBoundingClientRect();
+    draggedVertex.x = e.clientX - rect.left;
+    draggedVertex.y = e.clientY - rect.top;
+    draggedVertex.vx = 0; draggedVertex.vy = 0;
+  }
+});
+
+graphCanvas.addEventListener('mouseup', () => {
+  if (draggedVertex) { draggedVertex.dragging = false; draggedVertex = null; graphCanvas.style.cursor = 'grab'; }
+});
+
+graphCanvas.addEventListener('mouseleave', () => {
+  if (draggedVertex) { draggedVertex.dragging = false; draggedVertex = null; graphCanvas.style.cursor = 'grab'; }
+});
+
+// ==================== STACK ====================
+class Stack {
+  constructor() {
+    this.items = [];
+    this.ops = 0;
+  }
+  push(value) { this.items.push(value); this.ops++; }
+  pop() { if (this.isEmpty()) return null; this.ops++; return this.items.pop(); }
+  peek() { return this.isEmpty() ? null : this.items[this.items.length - 1]; }
+  search(value) { 
+    for (let i = this.items.length - 1; i >= 0; i--) {
+      if (String(this.items[i]) === String(value)) return this.items.length - 1 - i;
+    }
+    return -1;
+  }
+  isEmpty() { return this.items.length === 0; }
+  size() { return this.items.length; }
+  clear() { this.items = []; this.ops = 0; }
+  toArray() { return [...this.items].reverse(); }
+}
+
+const stack = new Stack();
+
+function renderStack() {
+  const container = document.getElementById('stack-visual');
+  container.innerHTML = '';
+  const items = stack.items;
+
+  for (let i = items.length - 1; i >= 0; i--) {
+    const block = document.createElement('div');
+    block.className = 'stack-block' + (i === items.length - 1 ? ' top' : '');
+    block.textContent = items[i];
+    if (i === items.length - 1) {
+      const label = document.createElement('span');
+      label.className = 'pointer-label';
+      label.textContent = 'TOP';
+      block.appendChild(label);
+    }
+    container.appendChild(block);
+  }
+
+  if (items.length === 0) {
+    container.innerHTML = '<div style="color: var(--text-muted); font-size: 1.2rem; text-align: center; padding: 3rem;"><i class="fas fa-inbox" style="font-size: 2rem; display: block; margin-bottom: 1rem;"></i>Stack is Empty</div>';
+  }
+
+  updateStackStats();
+}
+
+function updateStackStats() {
+  document.getElementById('stack-size').textContent = stack.size();
+  document.getElementById('stack-top').textContent = stack.peek() || 'Empty';
+  document.getElementById('stack-ops').textContent = stack.ops;
+}
+
+function stackPush() {
+  const val = document.getElementById('stack-value').value.trim();
+  if (!val) { showNotification('Error', 'Please enter a value', 'error'); return; }
+  stack.push(val);
+  renderStack();
+  showNotification('Success', `Pushed "${val}" onto stack`);
+
+  const blocks = document.querySelectorAll('.stack-block');
+  if (blocks.length > 0) {
+    gsap.from(blocks[0], { y: -50, opacity: 0, scale: 0.8, duration: 0.5, ease: 'back.out(1.7)' });
+  }
+}
+
+function stackPop() {
+  if (stack.isEmpty()) { showNotification('Error', 'Stack is empty', 'error'); return; }
+  const val = stack.pop();
+  renderStack();
+  showNotification('Success', `Popped "${val}" from stack`);
+}
+
+function stackPeek() {
+  if (stack.isEmpty()) { showNotification('Error', 'Stack is empty', 'error'); return; }
+  const val = stack.peek();
+  showNotification('Peek', `Top element is "${val}"`);
+  const blocks = document.querySelectorAll('.stack-block');
+  if (blocks.length > 0) {
+    gsap.to(blocks[0], { scale: 1.1, duration: 0.3, yoyo: true, repeat: 1, ease: 'power2.inOut' });
+  }
+}
+
+function stackSearch() {
+  const val = document.getElementById('stack-value').value.trim();
+  if (!val) { showNotification('Error', 'Please enter a value to search', 'error'); return; }
+  const idx = stack.search(val);
+  if (idx !== -1) {
+    showNotification('Found', `"${val}" found at position ${idx + 1} from top`);
+    const blocks = document.querySelectorAll('.stack-block');
+    if (blocks[idx]) {
+      gsap.to(blocks[idx], { scale: 1.15, duration: 0.3, yoyo: true, repeat: 3, ease: 'power2.inOut' });
+    }
+  } else {
+    showNotification('Not Found', `"${val}" not in stack`, 'error');
+  }
+}
+
+function stackDisplay() {
+  const arr = stack.toArray();
+  const resultDiv = document.getElementById('stack-result');
+  const pathDiv = document.getElementById('stack-path');
+  if (arr.length === 0) { showNotification('Empty', 'Stack is empty', 'error'); resultDiv.classList.remove('active'); return; }
+  pathDiv.innerHTML = arr.map((val, i) => 
+    `<span class="path-node">${val}</span>${i < arr.length - 1 ? '<span class="path-arrow">-></span>' : ''}`
+  ).join('');
+  resultDiv.classList.add('active');
+  gsap.from('.path-node', { scale: 0, stagger: 0.08, duration: 0.4, ease: 'back.out(1.7)' });
+}
+
+function stackClear() {
+  stack.clear();
+  renderStack();
+  document.getElementById('stack-result').classList.remove('active');
+  showNotification('Clear', 'Stack cleared');
+}
+
+// ==================== QUEUE ====================
+class Queue {
+  constructor() {
+    this.items = [];
+    this.ops = 0;
+  }
+  enqueue(value) { this.items.push(value); this.ops++; }
+  dequeue() { if (this.isEmpty()) return null; this.ops++; return this.items.shift(); }
+  front() { return this.isEmpty() ? null : this.items[0]; }
+  rear() { return this.isEmpty() ? null : this.items[this.items.length - 1]; }
+  search(value) { 
+    return this.items.findIndex(item => String(item) === String(value));
+  }
+  isEmpty() { return this.items.length === 0; }
+  size() { return this.items.length; }
+  clear() { this.items = []; this.ops = 0; }
+  toArray() { return [...this.items]; }
+}
+
+const queue = new Queue();
+
+function renderQueue() {
+  const container = document.getElementById('queue-visual');
+  container.innerHTML = '';
+  const items = queue.items;
+
+  for (let i = 0; i < items.length; i++) {
+    const block = document.createElement('div');
+    block.className = 'queue-block' + (i === 0 ? ' front' : '') + (i === items.length - 1 ? ' rear' : '');
+    block.textContent = items[i];
+
+    if (i === 0) {
+      const label = document.createElement('span');
+      label.className = 'pointer-label';
+      label.textContent = 'FRONT';
+      block.appendChild(label);
+    }
+    if (i === items.length - 1 && items.length > 1) {
+      const label = document.createElement('span');
+      label.className = 'pointer-label';
+      label.style.color = 'var(--neon-pink)';
+      label.textContent = 'REAR';
+      block.appendChild(label);
+    }
+
+    container.appendChild(block);
+  }
+
+  if (items.length === 0) {
+    container.innerHTML = '<div style="color: var(--text-muted); font-size: 1.2rem; text-align: center; padding: 3rem;"><i class="fas fa-inbox" style="font-size: 2rem; display: block; margin-bottom: 1rem;"></i>Queue is Empty</div>';
+  }
+
+  updateQueueStats();
+}
+
+function updateQueueStats() {
+  document.getElementById('queue-size').textContent = queue.size();
+  document.getElementById('queue-front').textContent = queue.front() || 'Empty';
+  document.getElementById('queue-rear').textContent = queue.rear() || 'Empty';
+}
+
+function queueEnqueue() {
+  const val = document.getElementById('queue-value').value.trim();
+  if (!val) { showNotification('Error', 'Please enter a value', 'error'); return; }
+  queue.enqueue(val);
+  renderQueue();
+  showNotification('Success', `Enqueued "${val}"`);
+
+  const blocks = document.querySelectorAll('.queue-block');
+  if (blocks.length > 0) {
+    gsap.from(blocks[blocks.length - 1], { x: 80, opacity: 0, scale: 0.8, duration: 0.5, ease: 'back.out(1.7)' });
+  }
+}
+
+function queueDequeue() {
+  if (queue.isEmpty()) { showNotification('Error', 'Queue is empty', 'error'); return; }
+  const val = queue.dequeue();
+  renderQueue();
+  showNotification('Success', `Dequeued "${val}"`);
+}
+
+function queueFront() {
+  if (queue.isEmpty()) { showNotification('Error', 'Queue is empty', 'error'); return; }
+  const val = queue.front();
+  showNotification('Front', `Front element is "${val}"`);
+  const blocks = document.querySelectorAll('.queue-block');
+  if (blocks.length > 0) {
+    gsap.to(blocks[0], { scale: 1.15, duration: 0.3, yoyo: true, repeat: 1, ease: 'power2.inOut' });
+  }
+}
+
+function queueRear() {
+  if (queue.isEmpty()) { showNotification('Error', 'Queue is empty', 'error'); return; }
+  const val = queue.rear();
+  showNotification('Rear', `Rear element is "${val}"`);
+  const blocks = document.querySelectorAll('.queue-block');
+  if (blocks.length > 0) {
+    gsap.to(blocks[blocks.length - 1], { scale: 1.15, duration: 0.3, yoyo: true, repeat: 1, ease: 'power2.inOut' });
+  }
+}
+
+function queueSearch() {
+  const val = document.getElementById('queue-value').value.trim();
+  if (!val) { showNotification('Error', 'Please enter a value to search', 'error'); return; }
+  const idx = queue.search(val);
+  if (idx !== -1) {
+    showNotification('Found', `"${val}" found at position ${idx + 1}`);
+    const blocks = document.querySelectorAll('.queue-block');
+    if (blocks[idx]) {
+      gsap.to(blocks[idx], { scale: 1.15, duration: 0.3, yoyo: true, repeat: 3, ease: 'power2.inOut' });
+    }
+  } else {
+    showNotification('Not Found', `"${val}" not in queue`, 'error');
+  }
+}
+
+function queueDisplay() {
+  const arr = queue.toArray();
+  const resultDiv = document.getElementById('queue-result');
+  const pathDiv = document.getElementById('queue-path');
+  if (arr.length === 0) { showNotification('Empty', 'Queue is empty', 'error'); resultDiv.classList.remove('active'); return; }
+  pathDiv.innerHTML = arr.map((val, i) => 
+    `<span class="path-node">${val}</span>${i < arr.length - 1 ? '<span class="path-arrow">-></span>' : ''}`
+  ).join('');
+  resultDiv.classList.add('active');
+  gsap.from('.path-node', { scale: 0, stagger: 0.08, duration: 0.4, ease: 'back.out(1.7)' });
+}
+
+function queueClear() {
+  queue.clear();
+  renderQueue();
+  document.getElementById('queue-result').classList.remove('active');
+  showNotification('Clear', 'Queue cleared');
+}
+
+// ==================== DEMO DATA ====================
+setTimeout(() => {
+  // Demo linked list
+  linkedList.insertFront(50); linkedList.insertFront(30); linkedList.insertFront(20); linkedList.insertLast(70);
+  updateLLStats(); animateLLNodes();
+
+  // Demo tree
+  resizeTreeCanvas();
+  [50, 30, 70, 20, 40, 60, 80, 10, 25, 35, 45].forEach(v => bst.insert(v));
+  bst.calculatePositions();
+  updateTreeStats();
+  animateTreeNodes();
+
+  // Demo graph
+  const demoV = ['A', 'B', 'C', 'D', 'E'];
+  demoV.forEach((label, i) => {
+    const angle = (i / demoV.length) * Math.PI * 2;
+    graph.addVertex(label, 450 + Math.cos(angle) * 160, 280 + Math.sin(angle) * 160);
+  });
+  graph.addEdge('A', 'B'); graph.addEdge('A', 'C'); graph.addEdge('B', 'D'); graph.addEdge('C', 'D'); graph.addEdge('D', 'E');
+  updateGraphStats();
+
+  // Demo stack
+  stack.push('10'); stack.push('20'); stack.push('30');
+  renderStack();
+
+  // Demo queue
+  queue.enqueue('A'); queue.enqueue('B'); queue.enqueue('C');
+  renderQueue();
+}, 800);
+
+// ==================== WINDOW RESIZE ====================
+window.addEventListener('resize', () => {
+  resizeLLCanvas();
+  resizeTreeCanvas();
+  resizeGraphCanvas();
+  bst.calculatePositions();
+  if (bst.root) animateTreeNodes();
+});
+</script>
+</body>
+</html>
