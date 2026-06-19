@@ -7,7 +7,7 @@ An interactive web application that helps students and developers understand Dat
  ## Live Demo
 
 
-[![visual](https://img.shields.io/badge/View%20visualization-datastructure%20-0A66C2?style=for-the-badge&logo=github&logoColor=white)]( https://datastructurevisual.netlify.app/)
+[![visual](https://img.shields.io/badge/View%20visualization-datastructure%20-0A66C2?style=for-the-badge&logo=github&logoColor=white)]( [https://datastructurevisual.netlify.app/](https://datastructurevisualise.netlify.app/))
 
 ---
 
